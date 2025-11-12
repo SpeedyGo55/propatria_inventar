@@ -1,11 +1,287 @@
 <script setup>
+import { ref, onMounted, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { useWindowSize } from '@vueuse/core'
+import { supabase } from '@/utils/supabase.js'
 
+const { width } = useWindowSize()
+const router = useRouter()
+
+// Reactive state
+const session = ref(null)
+const reservations = ref([])
+const inventory = ref([])
+const loading = ref(true)
+
+const itemId = ref(null)
+const fromDate = ref('')
+const toDate = ref('')
+const quantity = ref(1)
+const newToDate = ref('')
+
+// --- Session Management ---
+const getSession = async () => {
+  const { data, error } = await supabase.auth.getSession()
+  if (error) {
+    console.error('Error getting session:', error)
+    return null
+  }
+  return data?.session
+}
+
+const ensureSession = async () => {
+  session.value = await getSession()
+  if (!session.value?.user) {
+    console.warn('No active session, redirecting to login')
+    await router.push('/login')
+  }
+}
+
+// --- Inventory ---
+async function fetchInventory() {
+  const { data, error } = await supabase.from('inventory').select('*')
+  if (error) {
+    console.error('Error fetching inventory:', error)
+    return []
+  }
+  return data
+}
+
+// --- Reservations ---
+async function fetchReservations() {
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('*')
+    .order('from', { ascending: true })
+    .eq('user_id', session.value.user.id)
+
+  if (error) {
+    console.error('Error fetching reservations:', error)
+    return []
+  }
+  return data
+}
+
+// --- Actions ---
+async function cancelReservation(reservationId) {
+  const { error } = await supabase
+    .from('reservations')
+    .delete()
+    .eq('id', reservationId)
+
+  if (error) {
+    console.error('Error cancelling reservation:', error)
+    alert('Failed to cancel reservation: ' + error.message)
+  } else {
+    await loadItems()
+  }
+}
+
+async function extendReservation(reservationId, newTo) {
+  if (!newTo) {
+    alert('Please select a new end date.')
+    return
+  }
+
+  const { error } = await supabase
+    .from('reservations')
+    .update({ to: new Date(newTo).toISOString() })
+    .eq('id', reservationId)
+
+  if (error) {
+    console.error('Error extending reservation:', error)
+    alert('Failed to extend reservation: ' + error.message)
+  } else {
+    await loadItems()
+  }
+}
+
+async function createReservation(itemId, from, to, quantity = 1) {
+  const inventoryData = inventory.value
+  const item = inventoryData.find(item => item.id === Number(itemId))
+  if (!item) {
+    alert('Item not found in inventory.')
+    return
+  }
+
+  const overlapping = reservations.value.filter(reservation =>
+    reservation.item_id === itemId &&
+    (new Date(from) < new Date(reservation.to) && new Date(to) > new Date(reservation.from))
+  )
+
+  for (let date = new Date(from); date <= new Date(to); date.setDate(date.getDate() + 1)) {
+    const reservedForDay = overlapping.filter(res =>
+      new Date(res.from) <= date && new Date(res.to) >= date
+    )
+    const totalReserved = reservedForDay.reduce((sum, r) => sum + r.quantity, 0)
+
+    if (totalReserved + quantity > item.quantity_available) {
+      alert(`Not enough quantity available for item ${item.name} on ${date.toLocaleDateString()}.`)
+      return
+    }
+  }
+
+  const { error } = await supabase.from('reservations').insert({
+    item_id: itemId,
+    from: new Date(from).toISOString(),
+    to: new Date(to).toISOString(),
+    quantity: quantity,
+    user_id: session.value.user.id,
+  })
+
+  if (error) {
+    console.error('Error creating reservation:', error)
+    alert('Failed to create reservation: ' + error.message)
+  } else {
+    await loadItems()
+  }
+}
+
+const maxQuantity = computed(() => {
+  const item = inventory.value.find(i => i.id === Number(itemId.value))
+  return item?.quantity_available || 1
+})
+
+watch(quantity, (val) => {
+  if (val > maxQuantity.value) {
+    quantity.value = maxQuantity.value
+  }
+})
+
+// --- Load items and session ---
+async function loadItems() {
+  loading.value = true
+
+  if (!session.value || !session.value.user) {
+    console.warn('User not authenticated; redirecting...')
+    await router.push('/login')
+    return
+  }
+
+  [reservations.value, inventory.value] = await Promise.all([
+    fetchReservations(),
+    fetchInventory()
+  ])
+
+  loading.value = false
+}
+
+onMounted(async () => {
+  await ensureSession()
+  if (session.value?.user) {
+    await loadItems()
+  }
+})
+
+supabase.auth.onAuthStateChange((_, newSession) => {
+  session.value = newSession
+  if (newSession?.user) {
+    loadItems()
+  }
+})
 </script>
-
 <template>
-  $END$
+  <div class="min-h-screen bg-gray-100 p-6 dark:bg-gray-800 dark:text-gray-200">
+    <h1 class="text-2xl font-bold mb-6 text-center dark:text-white">Your Reservations</h1>
+
+    <div v-if="loading" class="text-center">Loading...</div>
+    <div v-else>
+      <!-- Reservation Table -->
+      <table class="w-full bg-white dark:bg-gray-700 rounded-lg shadow-md">
+        <thead>
+        <tr>
+          <th :class="width > 680 ? 'px-6 py-3' : 'px-2 py-3'" class="border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Item</th>
+          <th v-if="width > 740" class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Beginn</th>
+          <th v-if="width > 740" class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Ende</th>
+          <th v-else class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Dauer</th>
+          <th class="px-4 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600 w-1">Qty</th>
+          <th :class="width > 680 ? 'px-6' : 'px-2'" class="py-3 border-b text-right text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Actions</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr v-for="reservation in reservations" :key="reservation.id">
+          <td :class="width > 560 ? 'px-6 py-4' : 'px-2 py-4'" class="border-b dark:border-gray-600">
+            {{ inventory.find(item => item.id === reservation.item_id)?.name || 'Unknown Item' }}
+          </td>
+
+          <td v-if="width > 740" class="px-6 py-4 border-b dark:border-gray-600">
+            {{ new Date(reservation.from).toLocaleDateString() }}
+          </td>
+          <td v-if="width > 740" class="px-6 py-4 border-b dark:border-gray-600">
+            {{ new Date(reservation.to).toLocaleDateString() }}
+          </td>
+          <td v-else class="px-6 py-4 border-b dark:border-gray-600">
+            {{ new Date(reservation.from).toLocaleDateString() }} - {{ new Date(reservation.to).toLocaleDateString() }}
+          </td>
+
+          <td class="px-4 py-4 border-b text-left dark:border-gray-600">
+            {{ reservation.quantity }}
+          </td>
+
+          <td :class="width > 680 ? 'px-6' : 'px-2'" class="py-4 border-b text-right dark:border-gray-600">
+            <button @click="cancelReservation(reservation.id)" class="text-red-500 hover:underline">Cancel</button>
+
+            <template v-if="width > 560">
+              <button @click="extendReservation(reservation.id, newToDate)" class="text-blue-500 hover:underline ml-2">Extend</button>
+              <input v-model="newToDate" type="date" class="ml-2 px-2 py-1 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200" placeholder="New To Date" />
+            </template>
+          </td>
+        </tr>
+        </tbody>
+
+        <tfoot>
+        <tr>
+          <td colspan="6" class="px-6 py-4 border-t bg-gray-50 text-center dark:border-gray-600 dark:bg-gray-600 rounded-b-lg">
+            <button @click="loadItems" class="text-blue-500 hover:underline">Refresh</button>
+          </td>
+        </tr>
+        </tfoot>
+      </table>
+
+      <!-- Reservation Form -->
+      <div class="mt-8">
+        <h2 class="text-lg font-semibold mb-4 dark:text-gray-300">Create New Reservation</h2>
+        <form @submit.prevent="createReservation(itemId, fromDate, toDate, quantity)" class="bg-white dark:bg-gray-700 p-6 rounded shadow-md space-y-4">
+          <div>
+            <label for="itemId" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item</label>
+            <select v-model="itemId" id="itemId" required class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200">
+              <option value="" disabled selected>Wähle Material aus</option>
+              <option v-for="item in inventory" :key="item.id" :value="item.id">
+                {{ item.name }} ({{ item.quantity_available }} available)
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label for="fromDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">From</label>
+            <input v-model="fromDate" type="date" id="fromDate" required class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200" />
+          </div>
+
+          <div>
+            <label for="toDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">To</label>
+            <input v-model="toDate" type="date" id="toDate" required class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200" />
+          </div>
+
+          <div>
+            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label>
+            <input
+              v-model.number="quantity"
+              type="number"
+              id="quantity"
+              min="1"
+              :max="maxQuantity"
+              required
+              class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+            />
+          </div>
+
+          <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600">
+            Create Reservation
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
 </template>
 
-<style scoped>
-
-</style>

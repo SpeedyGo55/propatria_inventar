@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import { supabase } from '@/utils/supabase.js'
+import HeaderBar from './HeaderBar.vue'
 
 const { width } = useWindowSize()
 const router = useRouter()
@@ -64,10 +65,7 @@ async function fetchReservations() {
 
 // --- Actions ---
 async function cancelReservation(reservationId) {
-  const { error } = await supabase
-    .from('reservations')
-    .delete()
-    .eq('id', reservationId)
+  const { error } = await supabase.from('reservations').delete().eq('id', reservationId)
 
   if (error) {
     console.error('Error cancelling reservation:', error)
@@ -98,20 +96,22 @@ async function extendReservation(reservationId, newTo) {
 
 async function createReservation(itemId, from, to, quantity = 1) {
   const inventoryData = inventory.value
-  const item = inventoryData.find(item => item.id === Number(itemId))
+  const item = inventoryData.find((item) => item.id === Number(itemId))
   if (!item) {
     alert('Item not found in inventory.')
     return
   }
 
-  const overlapping = reservations.value.filter(reservation =>
-    reservation.item_id === itemId &&
-    (new Date(from) < new Date(reservation.to) && new Date(to) > new Date(reservation.from))
+  const overlapping = reservations.value.filter(
+    (reservation) =>
+      reservation.item_id === itemId &&
+      new Date(from) < new Date(reservation.to) &&
+      new Date(to) > new Date(reservation.from),
   )
 
   for (let date = new Date(from); date <= new Date(to); date.setDate(date.getDate() + 1)) {
-    const reservedForDay = overlapping.filter(res =>
-      new Date(res.from) <= date && new Date(res.to) >= date
+    const reservedForDay = overlapping.filter(
+      (res) => new Date(res.from) <= date && new Date(res.to) >= date,
     )
     const totalReserved = reservedForDay.reduce((sum, r) => sum + r.quantity, 0)
 
@@ -138,7 +138,7 @@ async function createReservation(itemId, from, to, quantity = 1) {
 }
 
 const maxQuantity = computed(() => {
-  const item = inventory.value.find(i => i.id === Number(itemId.value))
+  const item = inventory.value.find((i) => i.id === Number(itemId.value))
   return item?.quantity_available || 1
 })
 
@@ -158,9 +158,9 @@ async function loadItems() {
     return
   }
 
-  [reservations.value, inventory.value] = await Promise.all([
+  ;[reservations.value, inventory.value] = await Promise.all([
     fetchReservations(),
-    fetchInventory()
+    fetchInventory(),
   ])
 
   loading.value = false
@@ -181,107 +181,209 @@ supabase.auth.onAuthStateChange((_, newSession) => {
 })
 </script>
 <template>
-  <div class="min-h-screen bg-gray-100 p-6 dark:bg-gray-800 dark:text-gray-200">
-    <h1 class="text-2xl font-bold mb-6 text-center dark:text-white">Your Reservations</h1>
+  <div class="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200">
+    <HeaderBar title="Pfadi Pro Patria Material" />
 
-    <div v-if="loading" class="text-center">Loading...</div>
-    <div v-else>
-      <!-- Reservation Table -->
-      <table class="w-full bg-white dark:bg-gray-700 rounded-lg shadow-md">
-        <thead>
-        <tr>
-          <th :class="width > 680 ? 'px-6 py-3' : 'px-2 py-3'" class="border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Item</th>
-          <th v-if="width > 740" class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Beginn</th>
-          <th v-if="width > 740" class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Ende</th>
-          <th v-else class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Dauer</th>
-          <th class="px-4 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600 w-1">Qty</th>
-          <th :class="width > 680 ? 'px-6' : 'px-2'" class="py-3 border-b text-right text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600">Actions</th>
-        </tr>
-        </thead>
+    <div class="px-3 mt-3">
+      <div class="flex justify-between items-center mb-3">
+        <p class="text-xl font-bold dark:text-white">Reservierungen</p>
+        <button
+          @click="router.push({ name: 'inventar' })"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
+          type="button"
+        >
+          Inventar
+        </button>
+      </div>
+      <div v-if="loading" class="text-center">Loading...</div>
+      <div v-else>
+        <!-- Reservation Table -->
+        <table class="w-full bg-white dark:bg-gray-700 rounded-lg shadow-md">
+          <thead>
+            <tr>
+              <th
+                :class="width > 680 ? 'px-6 py-3' : 'px-2 py-3'"
+                class="border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600"
+              >
+                Item
+              </th>
+              <th
+                v-if="width > 740"
+                class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600"
+              >
+                Beginn
+              </th>
+              <th
+                v-if="width > 740"
+                class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600"
+              >
+                Ende
+              </th>
+              <th
+                v-else
+                class="px-6 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600"
+              >
+                Dauer
+              </th>
+              <th
+                class="px-4 py-3 border-b text-left text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600 w-1"
+              >
+                Qty
+              </th>
+              <th
+                :class="width > 680 ? 'px-6' : 'px-2'"
+                class="py-3 border-b text-right text-sm font-medium text-gray-700 dark:text-gray-300 dark:border-gray-600"
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
 
-        <tbody>
-        <tr v-for="reservation in reservations" :key="reservation.id">
-          <td :class="width > 560 ? 'px-6 py-4' : 'px-2 py-4'" class="border-b dark:border-gray-600">
-            {{ inventory.find(item => item.id === reservation.item_id)?.name || 'Unknown Item' }}
-          </td>
+          <tbody>
+            <tr v-for="reservation in reservations" :key="reservation.id">
+              <td
+                :class="width > 560 ? 'px-6 py-4' : 'px-2 py-4'"
+                class="border-b dark:border-gray-600"
+              >
+                {{
+                  inventory.find((item) => item.id === reservation.item_id)?.name || 'Unknown Item'
+                }}
+              </td>
 
-          <td v-if="width > 740" class="px-6 py-4 border-b dark:border-gray-600">
-            {{ new Date(reservation.from).toLocaleDateString() }}
-          </td>
-          <td v-if="width > 740" class="px-6 py-4 border-b dark:border-gray-600">
-            {{ new Date(reservation.to).toLocaleDateString() }}
-          </td>
-          <td v-else class="px-6 py-4 border-b dark:border-gray-600">
-            {{ new Date(reservation.from).toLocaleDateString() }} - {{ new Date(reservation.to).toLocaleDateString() }}
-          </td>
+              <td v-if="width > 740" class="px-6 py-4 border-b dark:border-gray-600">
+                {{ new Date(reservation.from).toLocaleDateString() }}
+              </td>
+              <td v-if="width > 740" class="px-6 py-4 border-b dark:border-gray-600">
+                {{ new Date(reservation.to).toLocaleDateString() }}
+              </td>
+              <td v-else class="px-6 py-4 border-b dark:border-gray-600">
+                {{ new Date(reservation.from).toLocaleDateString() }} -
+                {{ new Date(reservation.to).toLocaleDateString() }}
+              </td>
 
-          <td class="px-4 py-4 border-b text-left dark:border-gray-600">
-            {{ reservation.quantity }}
-          </td>
+              <td class="px-4 py-4 border-b text-left dark:border-gray-600">
+                {{ reservation.quantity }}
+              </td>
 
-          <td :class="width > 680 ? 'px-6' : 'px-2'" class="py-4 border-b text-right dark:border-gray-600">
-            <button @click="cancelReservation(reservation.id)" class="text-red-500 hover:underline">Cancel</button>
+              <td
+                :class="width > 680 ? 'px-6' : 'px-2'"
+                class="py-4 border-b text-right dark:border-gray-600"
+              >
+                <button
+                  @click="cancelReservation(reservation.id)"
+                  class="text-red-500 hover:underline"
+                >
+                  Cancel
+                </button>
 
-            <template v-if="width > 560">
-              <button @click="extendReservation(reservation.id, newToDate)" class="text-blue-500 hover:underline ml-2">Extend</button>
-              <input v-model="newToDate" type="date" class="ml-2 px-2 py-1 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200" placeholder="New To Date" />
-            </template>
-          </td>
-        </tr>
-        </tbody>
+                <template v-if="width > 560">
+                  <button
+                    @click="extendReservation(reservation.id, newToDate)"
+                    class="text-blue-500 hover:underline ml-2"
+                  >
+                    Extend
+                  </button>
+                  <input
+                    v-model="newToDate"
+                    type="date"
+                    class="ml-2 px-2 py-1 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+                    placeholder="New To Date"
+                  />
+                </template>
+              </td>
+            </tr>
+          </tbody>
 
-        <tfoot>
-        <tr>
-          <td colspan="6" class="px-6 py-4 border-t bg-gray-50 text-center dark:border-gray-600 dark:bg-gray-600 rounded-b-lg">
-            <button @click="loadItems" class="text-blue-500 hover:underline">Refresh</button>
-          </td>
-        </tr>
-        </tfoot>
-      </table>
+          <tfoot>
+            <tr>
+              <td
+                colspan="6"
+                class="px-6 py-4 border-t bg-gray-50 text-center dark:border-gray-600 dark:bg-gray-600 rounded-b-lg"
+              >
+                <button @click="loadItems" class="text-blue-500 hover:underline">Refresh</button>
+              </td>
+            </tr>
+          </tfoot>
+        </table>
 
-      <!-- Reservation Form -->
-      <div class="mt-8">
-        <h2 class="text-lg font-semibold mb-4 dark:text-gray-300">Create New Reservation</h2>
-        <form @submit.prevent="createReservation(itemId, fromDate, toDate, quantity)" class="bg-white dark:bg-gray-700 p-6 rounded shadow-md space-y-4">
-          <div>
-            <label for="itemId" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Item</label>
-            <select v-model="itemId" id="itemId" required class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200">
-              <option value="" disabled selected>Wähle Material aus</option>
-              <option v-for="item in inventory" :key="item.id" :value="item.id">
-                {{ item.name }} ({{ item.quantity_available }} available)
-              </option>
-            </select>
-          </div>
+        <!-- Reservation Form -->
+        <div class="mt-8">
+          <h2 class="text-lg font-semibold mb-4 dark:text-gray-300">Create New Reservation</h2>
+          <form
+            @submit.prevent="createReservation(itemId, fromDate, toDate, quantity)"
+            class="bg-white dark:bg-gray-700 p-6 rounded shadow-md space-y-4"
+          >
+            <div>
+              <label for="itemId" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Item</label
+              >
+              <select
+                v-model="itemId"
+                id="itemId"
+                required
+                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+              >
+                <option value="" disabled selected>Wähle Material aus</option>
+                <option v-for="item in inventory" :key="item.id" :value="item.id">
+                  {{ item.name }} ({{ item.quantity_available }} available)
+                </option>
+              </select>
+            </div>
 
-          <div>
-            <label for="fromDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">From</label>
-            <input v-model="fromDate" type="date" id="fromDate" required class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200" />
-          </div>
+            <div>
+              <label
+                for="fromDate"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >From</label
+              >
+              <input
+                v-model="fromDate"
+                type="date"
+                id="fromDate"
+                required
+                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+              />
+            </div>
 
-          <div>
-            <label for="toDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300">To</label>
-            <input v-model="toDate" type="date" id="toDate" required class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200" />
-          </div>
+            <div>
+              <label for="toDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >To</label
+              >
+              <input
+                v-model="toDate"
+                type="date"
+                id="toDate"
+                required
+                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+              />
+            </div>
 
-          <div>
-            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Quantity</label>
-            <input
-              v-model.number="quantity"
-              type="number"
-              id="quantity"
-              min="1"
-              :max="maxQuantity"
-              required
-              class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
-            />
-          </div>
+            <div>
+              <label
+                for="quantity"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >Quantity</label
+              >
+              <input
+                v-model.number="quantity"
+                type="number"
+                id="quantity"
+                min="1"
+                :max="maxQuantity"
+                required
+                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+              />
+            </div>
 
-          <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600">
-            Create Reservation
-          </button>
-        </form>
+            <button
+              type="submit"
+              class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
+            >
+              Create Reservation
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
 </template>
-

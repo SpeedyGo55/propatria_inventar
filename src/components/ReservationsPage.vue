@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import { supabase } from '@/utils/supabase.js'
+import { VueFinalModal, ModalsContainer } from 'vue-final-modal'
 import HeaderBar from './HeaderBar.vue'
 
 const { width } = useWindowSize()
@@ -19,6 +20,7 @@ const fromDate = ref('')
 const toDate = ref('')
 const quantity = ref(1)
 const newToDate = ref('')
+const showModal = ref(false)
 
 // --- Session Management ---
 const getSession = async () => {
@@ -72,6 +74,12 @@ async function cancelReservation(reservationId) {
     alert('Failed to cancel reservation: ' + error.message)
   } else {
     await loadItems()
+    showModal.value = false
+    // Reset form
+    itemId.value = null
+    fromDate.value = ''
+    toDate.value = ''
+    quantity.value = 1
   }
 }
 
@@ -187,13 +195,22 @@ supabase.auth.onAuthStateChange((_, newSession) => {
     <div class="px-3 mt-3">
       <div class="flex justify-between items-center mb-3">
         <p class="text-xl font-bold dark:text-white">Reservierungen</p>
-        <button
-          @click="router.push({ name: 'inventar' })"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
-          type="button"
-        >
-          Inventar
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="showModal = true"
+            class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition duration-200 dark:bg-green-700 dark:hover:bg-green-600"
+            type="button"
+          >
+            Neue Reservierung
+          </button>
+          <button
+            @click="router.back()"
+            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
+            type="button"
+          >
+            Zurück
+          </button>
+        </div>
       </div>
       <div v-if="loading" class="text-center">Loading...</div>
       <div v-else>
@@ -305,85 +322,110 @@ supabase.auth.onAuthStateChange((_, newSession) => {
             </tr>
           </tfoot>
         </table>
-
-        <!-- Reservation Form -->
-        <div class="mt-8">
-          <h2 class="text-lg font-semibold mb-4 dark:text-gray-300">Create New Reservation</h2>
-          <form
-            @submit.prevent="createReservation(itemId, fromDate, toDate, quantity)"
-            class="bg-white dark:bg-gray-700 p-6 rounded shadow-md space-y-4"
-          >
-            <div>
-              <label for="itemId" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >Item</label
-              >
-              <select
-                v-model="itemId"
-                id="itemId"
-                required
-                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
-              >
-                <option value="" disabled selected>Wähle Material aus</option>
-                <option v-for="item in inventory" :key="item.id" :value="item.id">
-                  {{ item.name }} ({{ item.quantity_available }} available)
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                for="fromDate"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >From</label
-              >
-              <input
-                v-model="fromDate"
-                type="date"
-                id="fromDate"
-                required
-                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
-              />
-            </div>
-
-            <div>
-              <label for="toDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >To</label
-              >
-              <input
-                v-model="toDate"
-                type="date"
-                id="toDate"
-                required
-                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
-              />
-            </div>
-
-            <div>
-              <label
-                for="quantity"
-                class="block text-sm font-medium text-gray-700 dark:text-gray-300"
-                >Quantity</label
-              >
-              <input
-                v-model.number="quantity"
-                type="number"
-                id="quantity"
-                min="1"
-                :max="maxQuantity"
-                required
-                class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
-              />
-            </div>
-
-            <button
-              type="submit"
-              class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
-            >
-              Create Reservation
-            </button>
-          </form>
-        </div>
       </div>
     </div>
+
+    <!-- Modal for Reservation Form -->
+    <VueFinalModal
+      v-model="showModal"
+      class="flex justify-center items-center"
+      content-class="max-w-md w-full mx-4"
+      overlay-transition="vfm-fade"
+      content-transition="vfm-fade"
+    >
+      <div class="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-xl">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-lg font-semibold dark:text-gray-300">Neue Reservierung erstellen</h2>
+          <button
+            @click="showModal = false"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none"
+            type="button"
+          >
+            &times;
+          </button>
+        </div>
+
+        <form
+          @submit.prevent="createReservation(itemId, fromDate, toDate, quantity)"
+          class="space-y-4"
+        >
+          <div>
+            <label for="itemId" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Item</label
+            >
+            <select
+              v-model="itemId"
+              id="itemId"
+              required
+              class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+            >
+              <option value="" disabled selected>Wähle Material aus</option>
+              <option v-for="item in inventory" :key="item.id" :value="item.id">
+                {{ item.name }} ({{ item.quantity_available }} available)
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label for="fromDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Von</label
+            >
+            <input
+              v-model="fromDate"
+              type="date"
+              id="fromDate"
+              required
+              class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+            />
+          </div>
+
+          <div>
+            <label for="toDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Bis</label
+            >
+            <input
+              v-model="toDate"
+              type="date"
+              id="toDate"
+              required
+              class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+            />
+          </div>
+
+          <div>
+            <label for="quantity" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >Anzahl</label
+            >
+            <input
+              v-model.number="quantity"
+              type="number"
+              id="quantity"
+              min="1"
+              :max="maxQuantity"
+              required
+              class="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200"
+            />
+          </div>
+
+          <div class="flex gap-2 pt-2">
+            <button
+              type="submit"
+              class="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
+            >
+              Reservierung erstellen
+            </button>
+            <button
+              type="button"
+              @click="showModal = false"
+              class="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100 transition duration-200 dark:border-gray-500 dark:hover:bg-gray-600"
+            >
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      </div>
+    </VueFinalModal>
+
+    <ModalsContainer />
   </div>
 </template>

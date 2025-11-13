@@ -30,12 +30,12 @@ defineProps({
       <h1 class="text-2xl font-bold text-white">{{ title }}</h1>
       <div v-if="!loading">
         <div v-if="session" class="text-sm text-blue-100 dark:text-blue-200">
-          <span>Eingeloggt als: {{ session.user.email }}</span>
+          <span>Eingeloggt als: {{ session.user.user_metadata.name }}</span>
           <button
-            @click="supabase.auth.signOut()"
+            @click="router.push({ name: 'profile' })"
             class="ml-2 text-white hover:text-blue-200 dark:hover:text-blue-300 font-medium"
           >
-            Logout
+            Settings
           </button>
         </div>
         <button

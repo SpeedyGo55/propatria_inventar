@@ -10,6 +10,7 @@ import LoginPage from '@/components/LoginPage.vue'
 import InventarPage from '@/components/InventarPage.vue'
 import ReservationsPage from '@/components/ReservationsPage.vue'
 import ProfilePage from '@/components/ProfilePage.vue'
+import MatchefPage from '@/components/MatchefPage.vue'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -18,6 +19,7 @@ const router = createRouter({
     { path: '/login', name: 'login', component: LoginPage },
     { path: '/reservations', name: 'reservations', component: ReservationsPage },
     { path: '/profile', name: 'profile', component: ProfilePage },
+    { path: '/matchef', name: 'matchef', component: MatchefPage },
   ],
 })
 

@@ -64,7 +64,6 @@ const changeName = async () => {
 <template>
   <!-- profile settings page for changing password, email etc -->
   <div class="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200">
-    <HeaderBar title="Pfadi Pro Patria Material" />
     <div class="px-3 mt-3">
       <div class="flex justify-between items-center mb-3">
         <p class="text-xl font-bold dark:text-white">Profile Settings</p>
@@ -123,6 +122,13 @@ const changeName = async () => {
           Change Name
         </button>
       </form>
+      <button
+        type="button"
+        @click="supabase.auth.signOut()"
+        class="mt-3 bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition duration-200 dark:bg-red-800 dark:hover:bg-red-900"
+      >
+        Logout
+      </button>
     </div>
   </div>
 </template>

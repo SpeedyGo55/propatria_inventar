@@ -60,7 +60,6 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200">
-    <HeaderBar title="Pfadi Pro Patria Material" />
     <div class="px-3 mt-3">
       <div class="flex justify-between items-center mb-3">
         <p class="text-xl font-bold dark:text-white">Inventar</p>

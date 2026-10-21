@@ -4,14 +4,11 @@ import { supabase } from '@/utils/supabase.js'
 import { ArrowPathIcon } from '@heroicons/vue/24/outline'
 import { useWindowSize } from '@vueuse/core'
 import { useRouter } from 'vue-router'
-import HeaderBar from './HeaderBar.vue'
-
 const router = useRouter()
 
 const { width } = useWindowSize()
 
 const inventory = ref([])
-const reservations = ref([])
 const loading = ref(true)
 const session = ref(null)
 
@@ -32,19 +29,6 @@ async function fetchInventory() {
   }
 
   inventory.value = data
-}
-
-async function fetchReservations() {
-  const { data, error } = await supabase
-    .from('reservations')
-    .select('*')
-    .lt('from', new Date().toISOString())
-    .gt('to', new Date().toISOString())
-  if (error) {
-    return
-  }
-
-  reservations.value = data
 }
 
 async function update() {

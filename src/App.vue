@@ -1,23 +1,23 @@
+<script setup>
+import { useRoute } from 'vue-router'
+import { ModalsContainer } from 'vue-final-modal'
+import { useSessionStore } from '@/stores/session'
+import AppHeader from '@/components/layout/AppHeader.vue'
+import BottomNav from '@/components/layout/BottomNav.vue'
+import ToastHost from '@/components/base/ToastHost.vue'
+
+const route = useRoute()
+const s = useSessionStore()
+</script>
+
 <template>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200">
-    <HeaderBar />
-    <router-view class="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200" />
+    <AppHeader v-if="s.user && route.name !== 'login'" />
+    <main class="mx-auto max-w-6xl px-3 py-4 pb-20 md:pb-4">
+      <RouterView />
+    </main>
+    <BottomNav v-if="s.user && route.name !== 'login'" class="md:hidden" />
+    <ToastHost />
+    <ModalsContainer />
   </div>
 </template>
-
-<script setup>
-import { onMounted, ref } from 'vue'
-import { supabase } from '@/utils/supabase.js'
-import HeaderBar from './components/HeaderBar.vue'
-const session = ref()
-
-onMounted(() => {
-  supabase.auth.getSession().then(({ data }) => {
-    session.value = data.session
-  })
-
-  supabase.auth.onAuthStateChange((_, _session) => {
-    session.value = _session
-  })
-})
-</script>

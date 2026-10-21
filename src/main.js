@@ -2,31 +2,16 @@ import './assets/main.css'
 import 'vue-final-modal/style.css'
 
 import { createApp } from 'vue'
-import { createRouter, createWebHistory } from 'vue-router'
+import { createPinia } from 'pinia'
 import { createVfm } from 'vue-final-modal'
 
 import App from './App.vue'
-import LoginPage from '@/components/LoginPage.vue'
-import InventarPage from '@/components/InventarPage.vue'
-import ReservationsPage from '@/components/ReservationsPage.vue'
-import ProfilePage from '@/components/ProfilePage.vue'
-import MatchefPage from '@/components/MatchefPage.vue'
-
-const router = createRouter({
-  history: createWebHistory(),
-  routes: [
-    { path: '/', name: 'inventar', component: InventarPage },
-    { path: '/login', name: 'login', component: LoginPage },
-    { path: '/reservations', name: 'reservations', component: ReservationsPage },
-    { path: '/profile', name: 'profile', component: ProfilePage },
-    { path: '/matchef', name: 'matchef', component: MatchefPage },
-  ],
-})
+import { router } from './router'
 
 const app = createApp(App)
 
-const vfm = createVfm()
-
+app.use(createPinia()) // zuerst Pinia: der Router-Guard braucht den Store
 app.use(router)
-app.use(vfm)
+app.use(createVfm())
+
 app.mount('#app')

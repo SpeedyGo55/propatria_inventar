@@ -1,0 +1,791 @@
+-- =====================================================================
+-- Pro Patria Inventar – Supabase Schema v1
+-- Einfügen: Dashboard → SQL Editor → alles einfügen → Run
+-- Auf einem LEEREN Projekt ausführen. Alles läuft in einer Transaktion.
+-- =====================================================================
+begin;
+
+-- Interne Funktionen, nicht per API aufrufbar
+create schema if not exists intern;
+
+-- ---------------------------------------------------------------------
+-- 1. Enums (Reihenfolge von member_role ist wichtig: pending < … < admin)
+-- ---------------------------------------------------------------------
+create type public.member_role       as enum ('pending','guest','member','matchef','admin');
+create type public.gruppe_typ        as enum ('stufe','anlass','sonstiges');
+create type public.bestellung_status as enum ('pending','created','delivered','completed','rejected','cancelled');
+create type public.material_zustand  as enum ('neu','gut','gebraucht','schlecht');
+create type public.schaden_typ       as enum ('damaged','lost');
+create type public.schaden_status    as enum ('offen','in_reparatur','erledigt','abgeschrieben');
+
+-- ---------------------------------------------------------------------
+-- 2. Tabellen
+-- ---------------------------------------------------------------------
+create table public.profiles (
+  id           uuid primary key references auth.users on delete cascade,
+  display_name text,
+  email        text,
+  midata_id    integer unique,
+  created_at   timestamptz not null default now()
+);
+
+create table public.ical_tokens (
+  user_id uuid primary key references public.profiles on delete cascade,
+  token   uuid not null unique default gen_random_uuid()
+);
+
+create table public.abteilungen (
+  id              uuid primary key default gen_random_uuid(),
+  name            text not null,
+  slug            text not null unique check (slug ~ '^[a-z0-9-]+$'),
+  logo_url        text,
+  email           text,
+  midata_group_id integer unique,
+  created_at      timestamptz not null default now()
+);
+
+create table public.abteilung_members (
+  abteilung_id    uuid not null references public.abteilungen on delete cascade,
+  user_id         uuid not null references public.profiles on delete cascade,
+  role            public.member_role not null default 'pending',
+  source          text not null default 'manual' check (source in ('manual','midata')),
+  benachrichtigen boolean not null default false,  -- Mail bei neuer Bestellung / Warnungen
+  created_at      timestamptz not null default now(),
+  primary key (abteilung_id, user_id)
+);
+create index on public.abteilung_members (user_id);
+
+create table public.midata_role_mapping (
+  id           bigint generated always as identity primary key,
+  abteilung_id uuid references public.abteilungen on delete cascade, -- null = gilt überall
+  role_class   text not null,                                        -- MiData role_class oder '*'
+  role         public.member_role not null,
+  unique nulls not distinct (abteilung_id, role_class)
+);
+
+create table public.kategorien (
+  id           bigint generated always as identity primary key,
+  abteilung_id uuid not null references public.abteilungen on delete cascade,
+  name         text not null,
+  unique (abteilung_id, name)
+);
+
+create table public.standorte (
+  id           bigint generated always as identity primary key,
+  abteilung_id uuid not null references public.abteilungen on delete cascade,
+  name         text not null,
+  adresse      text,
+  notiz        text,
+  unique (abteilung_id, name)
+);
+
+create table public.material (
+  id             bigint generated always as identity primary key,
+  abteilung_id   uuid not null references public.abteilungen on delete cascade,
+  name           text not null,
+  beschreibung   text,
+  anzahl         integer not null default 1 check (anzahl >= 0),
+  damaged        integer not null default 0 check (damaged >= 0),
+  lost           integer not null default 0 check (lost >= 0),
+  consumable     boolean not null default false,
+  min_bestand    integer check (min_bestand >= 0),
+  gewicht_kg     numeric(8,2),
+  zustand        public.material_zustand,
+  standort_id    bigint references public.standorte on delete set null,
+  image_urls     text[] not null default '{}',
+  only_internal  boolean not null default true,   -- für spätere externe Ausleihe
+  inventarnummer text,
+  kaufdatum      date,
+  kaufpreis      numeric(10,2),
+  archiviert     boolean not null default false,  -- statt löschen
+  created_at     timestamptz not null default now(),
+  updated_at     timestamptz not null default now(),
+  constraint material_bestand_ok check (damaged + lost <= anzahl)
+);
+create index on public.material (abteilung_id);
+
+create table public.material_kategorien (
+  material_id  bigint not null references public.material on delete cascade,
+  kategorie_id bigint not null references public.kategorien on delete cascade,
+  primary key (material_id, kategorie_id)
+);
+
+create table public.sammlungen (
+  id           bigint generated always as identity primary key,
+  abteilung_id uuid not null references public.abteilungen on delete cascade,
+  name         text not null,
+  beschreibung text,
+  image_url    text
+);
+
+create table public.sammlung_items (
+  sammlung_id bigint not null references public.sammlungen on delete cascade,
+  material_id bigint not null references public.material on delete cascade,
+  anzahl      integer not null check (anzahl > 0),
+  primary key (sammlung_id, material_id)
+);
+
+create table public.gruppen (
+  id           bigint generated always as identity primary key,
+  abteilung_id uuid not null references public.abteilungen on delete cascade,
+  name         text not null,
+  typ          public.gruppe_typ not null default 'stufe',
+  aktiv        boolean not null default true
+);
+
+create table public.bestellungen (
+  id                     bigint generated always as identity primary key,
+  abteilung_id           uuid not null references public.abteilungen on delete cascade,
+  besteller_id           uuid references public.profiles on delete set null,
+  gruppe_id              bigint references public.gruppen on delete set null,
+  gruppe_freitext        text,
+  von                    timestamptz not null,
+  bis                    timestamptz not null,
+  status                 public.bestellung_status not null default 'pending',
+  kommentar              text,
+  matchef_kommentar      text,
+  ablehnungsgrund        text,
+  erinnerung_gesendet_at timestamptz,
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now(),
+  check (bis > von)
+);
+create index on public.bestellungen (abteilung_id, von, bis);
+create index on public.bestellungen (besteller_id);
+
+create table public.bestellung_items (
+  bestellung_id bigint not null references public.bestellungen on delete cascade,
+  material_id   bigint not null references public.material on delete restrict,
+  anzahl        integer not null check (anzahl > 0),
+  prepared      boolean not null default false,
+  controlled    boolean not null default false,
+  primary key (bestellung_id, material_id)
+);
+create index on public.bestellung_items (material_id);
+
+create table public.bestellung_historie (
+  id            bigint generated always as identity primary key,
+  bestellung_id bigint not null references public.bestellungen on delete cascade,
+  typ           text not null,      -- erstellt, created, delivered, …, zeitraum, kommentar
+  text          text,
+  user_id       uuid references public.profiles on delete set null default auth.uid(),
+  created_at    timestamptz not null default now()
+);
+create index on public.bestellung_historie (bestellung_id);
+
+create table public.schadensmeldungen (
+  id             bigint generated always as identity primary key,
+  abteilung_id   uuid not null references public.abteilungen on delete cascade, -- wird per Trigger gesetzt
+  material_id    bigint not null references public.material on delete cascade,
+  bestellung_id  bigint references public.bestellungen on delete set null,
+  typ            public.schaden_typ not null default 'damaged',
+  anzahl         integer not null default 1 check (anzahl > 0),
+  beschreibung   text,
+  foto_path      text,               -- Pfad im Bucket 'schaden-fotos'
+  status         public.schaden_status not null default 'offen',
+  gemeldet_von   uuid references public.profiles on delete set null default auth.uid(),
+  bearbeitet_von uuid references public.profiles on delete set null,
+  created_at     timestamptz not null default now(),
+  erledigt_at    timestamptz
+);
+create index on public.schadensmeldungen (abteilung_id, status);
+
+create table public.audit_log (
+  id           bigint generated always as identity primary key,
+  abteilung_id uuid,                 -- bewusst ohne FK
+  tabelle      text not null,
+  datensatz_id text,
+  aktion       text not null,
+  alt          jsonb,
+  neu          jsonb,
+  user_id      uuid,
+  created_at   timestamptz not null default now()
+);
+create index on public.audit_log (abteilung_id, created_at desc);
+
+-- ---------------------------------------------------------------------
+-- 3. Hilfsfunktionen
+-- ---------------------------------------------------------------------
+create function public.has_role(p_abteilung uuid, p_min public.member_role)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.abteilung_members m
+    where m.abteilung_id = p_abteilung
+      and m.user_id = (select auth.uid())
+      and m.role >= p_min);
+$$;
+
+-- true, wenn ich (mind. member) eine Abteilung mit p_other teile
+create function public.teilt_abteilung(p_other uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (
+    select 1 from public.abteilung_members a
+    join public.abteilung_members b on b.abteilung_id = a.abteilung_id
+    where a.user_id = (select auth.uid()) and a.role >= 'member' and b.user_id = p_other);
+$$;
+
+-- Freie Stückzahl im Zeitraum (konservativ: alle überlappenden Bestellungen zählen)
+create function intern.verfuegbar(p_material bigint, p_von timestamptz, p_bis timestamptz, p_ohne bigint default null)
+returns integer language sql stable set search_path = '' as $$
+  select (m.anzahl - m.damaged - m.lost - coalesce((
+    select sum(bi.anzahl)
+    from public.bestellung_items bi
+    join public.bestellungen b on b.id = bi.bestellung_id
+    where bi.material_id = m.id
+      and b.status in ('pending','created','delivered')
+      and b.von < p_bis and b.bis > p_von
+      and b.id is distinct from p_ohne), 0))::int
+  from public.material m where m.id = p_material;
+$$;
+
+-- ---------------------------------------------------------------------
+-- 4. Trigger-Funktionen
+-- ---------------------------------------------------------------------
+create function intern.tg_set_updated_at() returns trigger language plpgsql as $$
+begin new.updated_at := now(); return new; end $$;
+
+create function intern.tg_handle_new_user() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  insert into public.profiles (id, email, display_name)
+  values (new.id, new.email, coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)));
+  insert into public.ical_tokens (user_id) values (new.id);
+  return new;
+end $$;
+
+-- Prüft jede Position gegen die Verfügbarkeit (mit Lock gegen Doppelbuchung)
+create function intern.tg_item_pruefen() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare b public.bestellungen; frei int;
+begin
+  select * into b from public.bestellungen where id = new.bestellung_id;
+  if b.status not in ('pending','created','delivered') then return new; end if;
+
+  perform 1 from public.material m
+  where m.id = new.material_id and m.abteilung_id = b.abteilung_id for update;
+  if not found then
+    raise exception 'Material % gehört nicht zu dieser Abteilung', new.material_id;
+  end if;
+
+  frei := intern.verfuegbar(new.material_id, b.von, b.bis, b.id);
+  if frei < new.anzahl then
+    raise exception 'Nicht genug verfügbar: % (frei: %, gewünscht: %)',
+      (select name from public.material where id = new.material_id), frei, new.anzahl
+      using hint = 'nicht_verfuegbar';
+  end if;
+  return new;
+end $$;
+
+-- Statuswechsel validieren, bei neuen Daten/Reaktivierung neu prüfen
+create function intern.tg_bestellung_pruefen() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare
+  aktiv constant public.bestellung_status[] := array['pending','created','delivered'];
+  it record; frei int;
+begin
+  if new.abteilung_id <> old.abteilung_id or new.besteller_id is distinct from old.besteller_id then
+    raise exception 'Abteilung und Besteller können nicht geändert werden';
+  end if;
+
+  if new.status <> old.status and not case old.status
+      when 'pending'   then new.status in ('created','rejected','cancelled')
+      when 'created'   then new.status in ('pending','delivered','rejected','cancelled')
+      when 'delivered' then new.status in ('created','completed')
+      when 'completed' then new.status in ('delivered')
+      when 'rejected'  then new.status in ('pending')
+      when 'cancelled' then new.status in ('pending')
+    end then
+    raise exception 'Statuswechsel % → % nicht erlaubt', old.status, new.status;
+  end if;
+
+  if new.status = any(aktiv)
+     and (new.von <> old.von or new.bis <> old.bis or not (old.status = any(aktiv))) then
+    for it in select bi.material_id, bi.anzahl from public.bestellung_items bi
+              where bi.bestellung_id = new.id order by bi.material_id loop
+      perform 1 from public.material where id = it.material_id for update;
+      frei := intern.verfuegbar(it.material_id, new.von, new.bis, new.id);
+      if frei < it.anzahl then
+        raise exception 'Nicht genug verfügbar: % (frei: %, benötigt: %)',
+          (select name from public.material where id = it.material_id), frei, it.anzahl
+          using hint = 'nicht_verfuegbar';
+      end if;
+    end loop;
+  end if;
+  return new;
+end $$;
+
+-- Historie schreiben + Verbrauchsmaterial beim Abschluss abbuchen
+create function intern.tg_bestellung_log() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    insert into public.bestellung_historie (bestellung_id, typ) values (new.id, 'erstellt');
+    return null;
+  end if;
+
+  if new.status <> old.status then
+    insert into public.bestellung_historie (bestellung_id, typ, text)
+    values (new.id, new.status::text, case when new.status = 'rejected' then new.ablehnungsgrund end);
+
+    if new.status = 'completed' then
+      update public.material m
+      set anzahl = greatest(m.anzahl - bi.anzahl, m.damaged + m.lost)
+      from public.bestellung_items bi
+      where bi.bestellung_id = new.id and bi.material_id = m.id and m.consumable;
+    end if;
+  end if;
+
+  if new.von <> old.von or new.bis <> old.bis then
+    insert into public.bestellung_historie (bestellung_id, typ, text)
+    values (new.id, 'zeitraum', format('%s – %s', new.von, new.bis));
+  end if;
+  return null;
+end $$;
+
+create function intern.tg_schaden_vorher() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    select abteilung_id into new.abteilung_id from public.material where id = new.material_id;
+    return new;
+  end if;
+  if new.material_id <> old.material_id or new.anzahl <> old.anzahl or new.typ <> old.typ then
+    raise exception 'Material, Anzahl und Typ einer Meldung können nicht geändert werden';
+  end if;
+  if new.status <> old.status then
+    if old.status in ('erledigt','abgeschrieben') then
+      raise exception 'Abgeschlossene Meldungen können nicht wieder geöffnet werden';
+    end if;
+    new.bearbeitet_von := auth.uid();
+    if new.status in ('erledigt','abgeschrieben') then new.erledigt_at := now(); end if;
+  end if;
+  return new;
+end $$;
+
+create function intern.tg_schaden_nachher() returns trigger
+language plpgsql security definer set search_path = '' as $$
+begin
+  if tg_op = 'INSERT' then
+    update public.material set
+      damaged = damaged + case when new.typ = 'damaged' then new.anzahl else 0 end,
+      lost    = lost    + case when new.typ = 'lost'    then new.anzahl else 0 end
+    where id = new.material_id;
+  elsif new.status in ('erledigt','abgeschrieben') and old.status in ('offen','in_reparatur') then
+    -- erledigt = repariert/wiedergefunden, abgeschrieben = aus dem Bestand entfernen
+    update public.material set
+      damaged = greatest(damaged - case when new.typ = 'damaged' then new.anzahl else 0 end, 0),
+      lost    = greatest(lost    - case when new.typ = 'lost'    then new.anzahl else 0 end, 0),
+      anzahl  = case when new.status = 'abgeschrieben' then greatest(anzahl - new.anzahl, 0) else anzahl end
+    where id = new.material_id;
+  end if;
+  return null;
+end $$;
+
+create function intern.tg_audit() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare r jsonb := case when tg_op = 'DELETE' then to_jsonb(old) else to_jsonb(new) end;
+begin
+  insert into public.audit_log (abteilung_id, tabelle, datensatz_id, aktion, alt, neu, user_id)
+  values ((r->>'abteilung_id')::uuid, tg_table_name, coalesce(r->>'id', r->>'user_id'), lower(tg_op),
+          case when tg_op <> 'INSERT' then to_jsonb(old) end,
+          case when tg_op <> 'DELETE' then to_jsonb(new) end,
+          auth.uid());
+  return null;
+end $$;
+
+-- ---------------------------------------------------------------------
+-- 5. Trigger
+-- ---------------------------------------------------------------------
+create trigger on_auth_user_created after insert on auth.users
+  for each row execute function intern.tg_handle_new_user();
+
+create trigger material_updated_at before update on public.material
+  for each row execute function intern.tg_set_updated_at();
+create trigger bestellungen_updated_at before update on public.bestellungen
+  for each row execute function intern.tg_set_updated_at();
+
+create trigger bestellung_items_pruefen before insert or update of anzahl, material_id on public.bestellung_items
+  for each row execute function intern.tg_item_pruefen();
+create trigger bestellungen_pruefen before update on public.bestellungen
+  for each row execute function intern.tg_bestellung_pruefen();
+create trigger bestellungen_log after insert or update on public.bestellungen
+  for each row execute function intern.tg_bestellung_log();
+
+create trigger schaden_vorher before insert or update on public.schadensmeldungen
+  for each row execute function intern.tg_schaden_vorher();
+create trigger schaden_nachher after insert or update of status on public.schadensmeldungen
+  for each row execute function intern.tg_schaden_nachher();
+
+do $$ declare t text; begin
+  foreach t in array array['material','kategorien','standorte','sammlungen','gruppen',
+                           'bestellungen','abteilung_members','schadensmeldungen'] loop
+    execute format('create trigger audit after insert or update or delete on public.%I
+                    for each row execute function intern.tg_audit()', t);
+  end loop;
+end $$;
+
+-- ---------------------------------------------------------------------
+-- 6. RPC-Funktionen (Frontend: supabase.rpc('name', {...}))
+-- ---------------------------------------------------------------------
+create function public.material_verfuegbarkeit(p_abteilung uuid, p_von timestamptz, p_bis timestamptz)
+returns table (material_id bigint, verfuegbar integer)
+language sql stable security definer set search_path = '' as $$
+  select m.id, intern.verfuegbar(m.id, p_von, p_bis, null)
+  from public.material m
+  where m.abteilung_id = p_abteilung and not m.archiviert
+    and public.has_role(p_abteilung, 'guest');
+$$;
+
+-- p_items: [{"material_id": 1, "anzahl": 2}, ...]
+create function public.bestellung_erstellen(
+  p_abteilung uuid, p_von timestamptz, p_bis timestamptz, p_items jsonb,
+  p_gruppe_id bigint default null, p_gruppe_freitext text default null, p_kommentar text default null)
+returns bigint language plpgsql security definer set search_path = '' as $$
+declare v_id bigint;
+begin
+  if not public.has_role(p_abteilung, 'member') then
+    raise exception 'Keine Berechtigung' using errcode = '42501';
+  end if;
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) = 0 then
+    raise exception 'Warenkorb ist leer';
+  end if;
+  if p_gruppe_id is not null and not exists
+     (select 1 from public.gruppen where id = p_gruppe_id and abteilung_id = p_abteilung) then
+    raise exception 'Ungültige Gruppe';
+  end if;
+
+  -- Alle Materialien in fester Reihenfolge sperren (verhindert Deadlocks)
+  perform 1 from public.material
+  where id in (select (e->>'material_id')::bigint from jsonb_array_elements(p_items) e)
+  order by id for update;
+
+  insert into public.bestellungen (abteilung_id, besteller_id, von, bis, gruppe_id, gruppe_freitext, kommentar)
+  values (p_abteilung, auth.uid(), p_von, p_bis, p_gruppe_id, p_gruppe_freitext, p_kommentar)
+  returning id into v_id;
+
+  insert into public.bestellung_items (bestellung_id, material_id, anzahl)
+  select v_id, (e->>'material_id')::bigint, sum((e->>'anzahl')::int)
+  from jsonb_array_elements(p_items) e
+  group by 2 order by 2;          -- Trigger prüft jede Position
+
+  return v_id;
+end $$;
+
+create function public.bestellung_stornieren(p_id bigint)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  update public.bestellungen set status = 'cancelled'
+  where id = p_id and besteller_id = auth.uid() and status in ('pending','created');
+  if not found then raise exception 'Bestellung nicht gefunden oder nicht mehr stornierbar'; end if;
+end $$;
+
+create function public.bestellung_verlaengern(p_id bigint, p_bis timestamptz)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  update public.bestellungen b set bis = p_bis
+  where b.id = p_id and b.status in ('pending','created','delivered')
+    and (b.besteller_id = auth.uid() or public.has_role(b.abteilung_id, 'matchef'));
+  if not found then raise exception 'Bestellung nicht gefunden oder nicht änderbar'; end if;
+end $$;
+
+create function public.abteilung_beitreten(p_slug text)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare v_abt uuid;
+begin
+  select id into v_abt from public.abteilungen where slug = p_slug;
+  if v_abt is null then raise exception 'Abteilung nicht gefunden'; end if;
+  insert into public.abteilung_members (abteilung_id, user_id) values (v_abt, auth.uid())
+  on conflict do nothing;
+  return v_abt;
+end $$;
+
+-- Kalender: Belegung ohne Personendaten, für alle Mitglieder sichtbar
+create function public.kalender_belegung(p_abteilung uuid, p_von timestamptz, p_bis timestamptz)
+returns table (bestellung_id bigint, von timestamptz, bis timestamptz, status public.bestellung_status,
+               gruppe text, material_id bigint, material text, anzahl int, eigene boolean)
+language sql stable security definer set search_path = '' as $$
+  select b.id, b.von, b.bis, b.status, coalesce(g.name, b.gruppe_freitext),
+         m.id, m.name, bi.anzahl, b.besteller_id = (select auth.uid())
+  from public.bestellungen b
+  join public.bestellung_items bi on bi.bestellung_id = b.id
+  join public.material m on m.id = bi.material_id
+  left join public.gruppen g on g.id = b.gruppe_id
+  where b.abteilung_id = p_abteilung
+    and b.status in ('pending','created','delivered')
+    and b.von < p_bis and b.bis > p_von
+    and public.has_role(p_abteilung, 'guest')
+  order by b.von;
+$$;
+
+-- Nur für Edge Functions (service_role)
+create function public.ical_feed(p_token uuid)
+returns table (bestellung_id bigint, abteilung text, von timestamptz, bis timestamptz,
+               status public.bestellung_status, titel text, items text)
+language sql stable security definer set search_path = '' as $$
+  with u as (select user_id from public.ical_tokens where token = p_token)
+  select b.id, a.name, b.von, b.bis, b.status,
+         coalesce(g.name, b.gruppe_freitext, p.display_name, 'Bestellung'),
+         string_agg(bi.anzahl || '× ' || m.name, ', ' order by m.name)
+  from u
+  join public.abteilung_members am on am.user_id = u.user_id and am.role >= 'member'
+  join public.bestellungen b on b.abteilung_id = am.abteilung_id
+       and (b.besteller_id = u.user_id or am.role >= 'matchef')
+  join public.abteilungen a on a.id = b.abteilung_id
+  left join public.gruppen g on g.id = b.gruppe_id
+  left join public.profiles p on p.id = b.besteller_id
+  join public.bestellung_items bi on bi.bestellung_id = b.id
+  join public.material m on m.id = bi.material_id
+  where b.status in ('pending','created','delivered') and b.bis > now() - interval '60 days'
+  group by b.id, a.name, g.name, p.display_name;
+$$;
+
+-- Nur für Edge Functions (service_role): MiData-Rollen → Mitgliedschaften
+-- p_roles: [{"group_id": 123, "layer_group_id": 100, "role_class": "Group::Abteilung::Abteilungsleitung"}, ...]
+create function public.midata_sync(p_user uuid, p_roles jsonb)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  with r as (
+    select (e->>'group_id')::int as group_id, (e->>'layer_group_id')::int as layer_group_id,
+           e->>'role_class' as role_class
+    from jsonb_array_elements(p_roles) e
+  ), treffer as (
+    select a.id as abteilung_id, coalesce(
+      (select mm.role from public.midata_role_mapping mm where mm.abteilung_id = a.id     and mm.role_class = r.role_class),
+      (select mm.role from public.midata_role_mapping mm where mm.abteilung_id is null and mm.role_class = r.role_class),
+      (select mm.role from public.midata_role_mapping mm where mm.abteilung_id = a.id     and mm.role_class = '*'),
+      (select mm.role from public.midata_role_mapping mm where mm.abteilung_id is null and mm.role_class = '*'),
+      'guest'::public.member_role) as role
+    from r join public.abteilungen a on a.midata_group_id in (r.group_id, r.layer_group_id)
+  ), beste as (
+    select abteilung_id, max(role) as role from treffer group by abteilung_id
+  ), upsert as (
+    insert into public.abteilung_members (abteilung_id, user_id, role, source)
+    select abteilung_id, p_user, role, 'midata' from beste
+    on conflict (abteilung_id, user_id) do update
+      set role = excluded.role, source = 'midata'
+      where public.abteilung_members.source = 'midata'
+         or public.abteilung_members.role < excluded.role
+    returning 1
+  )
+  delete from public.abteilung_members m
+  where m.user_id = p_user and m.source = 'midata'
+    and m.abteilung_id not in (select abteilung_id from beste);
+end $$;
+
+-- ---------------------------------------------------------------------
+-- 7. Views (security_invoker = RLS gilt)
+-- ---------------------------------------------------------------------
+create view public.material_unter_min with (security_invoker = true) as
+select m.id, m.abteilung_id, m.name, m.min_bestand,
+       m.anzahl - m.damaged - m.lost as bestand,
+       m.min_bestand - (m.anzahl - m.damaged - m.lost) as fehlend
+from public.material m
+where m.consumable and m.min_bestand is not null and not m.archiviert
+  and m.anzahl - m.damaged - m.lost < m.min_bestand;
+
+create view public.stat_material with (security_invoker = true) as
+select m.abteilung_id, m.id as material_id, m.name,
+  count(distinct b.id) filter (where b.status in ('delivered','completed'))           as ausleihen,
+  coalesce(sum(bi.anzahl) filter (where b.status in ('delivered','completed')), 0)    as stueck,
+  max(b.von) filter (where b.status in ('delivered','completed'))                     as letzte_ausleihe,
+  (select count(*) from public.schadensmeldungen s where s.material_id = m.id)        as schadensmeldungen
+from public.material m
+left join public.bestellung_items bi on bi.material_id = m.id
+left join public.bestellungen b on b.id = bi.bestellung_id
+group by m.id;
+
+create view public.stat_ausleihen_monat with (security_invoker = true) as
+select b.abteilung_id, date_trunc('month', b.von)::date as monat,
+       coalesce(g.name, b.gruppe_freitext, 'ohne Gruppe') as gruppe, count(*) as bestellungen
+from public.bestellungen b
+left join public.gruppen g on g.id = b.gruppe_id
+where b.status in ('delivered','completed')
+group by 1, 2, 3;
+
+create view public.stat_inventarwert with (security_invoker = true) as
+select abteilung_id,
+       sum((anzahl - lost) * kaufpreis)          as wert,
+       count(*) filter (where kaufpreis is null) as ohne_preis
+from public.material where not archiviert
+group by abteilung_id;
+
+-- ---------------------------------------------------------------------
+-- 8. Row Level Security
+-- ---------------------------------------------------------------------
+alter table public.profiles            enable row level security;
+alter table public.ical_tokens         enable row level security;
+alter table public.abteilungen         enable row level security;
+alter table public.abteilung_members   enable row level security;
+alter table public.midata_role_mapping enable row level security;
+alter table public.kategorien          enable row level security;
+alter table public.standorte           enable row level security;
+alter table public.material            enable row level security;
+alter table public.material_kategorien enable row level security;
+alter table public.sammlungen          enable row level security;
+alter table public.sammlung_items      enable row level security;
+alter table public.gruppen             enable row level security;
+alter table public.bestellungen        enable row level security;
+alter table public.bestellung_items    enable row level security;
+alter table public.bestellung_historie enable row level security;
+alter table public.schadensmeldungen   enable row level security;
+alter table public.audit_log           enable row level security;
+
+-- profiles: nur display_name änderbar
+create policy "lesen" on public.profiles for select to authenticated
+  using (id = (select auth.uid()) or public.teilt_abteilung(id));
+create policy "eigenes ändern" on public.profiles for update to authenticated
+  using (id = (select auth.uid())) with check (id = (select auth.uid()));
+revoke update on public.profiles from authenticated;
+grant update (display_name) on public.profiles to authenticated;
+
+create policy "eigener token" on public.ical_tokens for select to authenticated
+  using (user_id = (select auth.uid()));
+create policy "token erneuern" on public.ical_tokens for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
+
+create policy "lesen" on public.abteilungen for select to authenticated using (true);
+create policy "admin ändert" on public.abteilungen for update to authenticated
+  using (public.has_role(id, 'admin')) with check (public.has_role(id, 'admin'));
+
+create policy "lesen" on public.abteilung_members for select to authenticated
+  using (user_id = (select auth.uid()) or public.has_role(abteilung_id, 'matchef'));
+create policy "admin fügt hinzu" on public.abteilung_members for insert to authenticated
+  with check (public.has_role(abteilung_id, 'admin'));
+create policy "admin ändert" on public.abteilung_members for update to authenticated
+  using (public.has_role(abteilung_id, 'admin')) with check (public.has_role(abteilung_id, 'admin'));
+create policy "admin entfernt oder selbst austreten" on public.abteilung_members for delete to authenticated
+  using (public.has_role(abteilung_id, 'admin') or user_id = (select auth.uid()));
+
+create policy "admin verwaltet" on public.midata_role_mapping for all to authenticated
+  using (abteilung_id is not null and public.has_role(abteilung_id, 'admin'))
+  with check (abteilung_id is not null and public.has_role(abteilung_id, 'admin'));
+
+-- Stammdaten: lesen ab guest, schreiben ab matchef
+do $$ declare t text; begin
+  foreach t in array array['kategorien','standorte','gruppen','sammlungen','material'] loop
+    execute format('create policy "lesen" on public.%I for select to authenticated
+                    using (public.has_role(abteilung_id, ''guest''))', t);
+    execute format('create policy "verwalten" on public.%I for all to authenticated
+                    using (public.has_role(abteilung_id, ''matchef''))
+                    with check (public.has_role(abteilung_id, ''matchef''))', t);
+  end loop;
+end $$;
+
+create policy "lesen" on public.material_kategorien for select to authenticated
+  using (exists (select 1 from public.material m where m.id = material_id));
+create policy "verwalten" on public.material_kategorien for all to authenticated
+  using (exists (select 1 from public.material m where m.id = material_id and public.has_role(m.abteilung_id, 'matchef')))
+  with check (exists (select 1 from public.material m where m.id = material_id and public.has_role(m.abteilung_id, 'matchef')));
+
+create policy "lesen" on public.sammlung_items for select to authenticated
+  using (exists (select 1 from public.sammlungen s where s.id = sammlung_id));
+create policy "verwalten" on public.sammlung_items for all to authenticated
+  using (exists (select 1 from public.sammlungen s where s.id = sammlung_id and public.has_role(s.abteilung_id, 'matchef')))
+  with check (exists (select 1 from public.sammlungen s where s.id = sammlung_id and public.has_role(s.abteilung_id, 'matchef')));
+
+-- Bestellungen: erstellen nur per RPC
+create policy "eigene oder matchef" on public.bestellungen for select to authenticated
+  using (besteller_id = (select auth.uid()) or public.has_role(abteilung_id, 'matchef'));
+create policy "matchef ändert" on public.bestellungen for update to authenticated
+  using (public.has_role(abteilung_id, 'matchef')) with check (public.has_role(abteilung_id, 'matchef'));
+create policy "admin löscht" on public.bestellungen for delete to authenticated
+  using (public.has_role(abteilung_id, 'admin'));
+
+create policy "lesen" on public.bestellung_items for select to authenticated
+  using (exists (select 1 from public.bestellungen b where b.id = bestellung_id));
+create policy "matchef verwaltet" on public.bestellung_items for all to authenticated
+  using (exists (select 1 from public.bestellungen b where b.id = bestellung_id and public.has_role(b.abteilung_id, 'matchef')))
+  with check (exists (select 1 from public.bestellungen b where b.id = bestellung_id and public.has_role(b.abteilung_id, 'matchef')));
+
+create policy "lesen" on public.bestellung_historie for select to authenticated
+  using (exists (select 1 from public.bestellungen b where b.id = bestellung_id));
+create policy "kommentieren" on public.bestellung_historie for insert to authenticated
+  with check (typ = 'kommentar' and user_id = (select auth.uid())
+              and exists (select 1 from public.bestellungen b where b.id = bestellung_id));
+
+create policy "lesen" on public.schadensmeldungen for select to authenticated
+  using (public.has_role(abteilung_id, 'member'));
+create policy "melden" on public.schadensmeldungen for insert to authenticated
+  with check (public.has_role(abteilung_id, 'member') and gemeldet_von = (select auth.uid()));
+create policy "matchef bearbeitet" on public.schadensmeldungen for update to authenticated
+  using (public.has_role(abteilung_id, 'matchef')) with check (public.has_role(abteilung_id, 'matchef'));
+
+create policy "admin liest" on public.audit_log for select to authenticated
+  using (public.has_role(abteilung_id, 'admin'));
+
+-- ---------------------------------------------------------------------
+-- 9. Storage (Pfad immer: <abteilung_id>/<datei>)
+-- ---------------------------------------------------------------------
+insert into storage.buckets (id, name, public) values
+  ('material-bilder', 'material-bilder', true),
+  ('schaden-fotos',   'schaden-fotos',   false)
+on conflict (id) do nothing;
+
+create policy "material-bilder hochladen" on storage.objects for insert to authenticated
+  with check (bucket_id = 'material-bilder' and public.has_role(((storage.foldername(name))[1])::uuid, 'matchef'));
+create policy "material-bilder ändern" on storage.objects for update to authenticated
+  using (bucket_id = 'material-bilder' and public.has_role(((storage.foldername(name))[1])::uuid, 'matchef'));
+create policy "material-bilder löschen" on storage.objects for delete to authenticated
+  using (bucket_id = 'material-bilder' and public.has_role(((storage.foldername(name))[1])::uuid, 'matchef'));
+create policy "schaden-fotos lesen" on storage.objects for select to authenticated
+  using (bucket_id = 'schaden-fotos' and public.has_role(((storage.foldername(name))[1])::uuid, 'member'));
+create policy "schaden-fotos hochladen" on storage.objects for insert to authenticated
+  with check (bucket_id = 'schaden-fotos' and public.has_role(((storage.foldername(name))[1])::uuid, 'member'));
+
+-- ---------------------------------------------------------------------
+-- 10. Realtime + Rechte
+-- ---------------------------------------------------------------------
+alter publication supabase_realtime add table public.bestellungen, public.schadensmeldungen;
+
+revoke execute on all functions in schema public from public, anon;
+grant  execute on all functions in schema public to authenticated;
+revoke execute on function public.midata_sync(uuid, jsonb), public.ical_feed(uuid) from authenticated;
+grant  execute on function public.midata_sync(uuid, jsonb), public.ical_feed(uuid) to service_role;
+
+-- Bestehende User übernehmen
+insert into public.profiles (id, email, display_name)
+select id, email, coalesce(raw_user_meta_data->>'name', split_part(email, '@', 1)) from auth.users
+on conflict do nothing;
+insert into public.ical_tokens (user_id) select id from public.profiles on conflict do nothing;
+
+commit;
+
+-- =====================================================================
+-- SEED (anpassen, dann einzeln ausführen)
+-- =====================================================================
+-- insert into public.abteilungen (name, slug, midata_group_id) values ('Pfadi Pro Patria', 'pro-patria', 1234);
+-- insert into public.abteilung_members (abteilung_id, user_id, role)
+--   select a.id, p.id, 'admin' from public.abteilungen a, public.profiles p
+--   where a.slug = 'pro-patria' and p.email = 'deine@mail.ch';
+-- insert into public.gruppen (abteilung_id, name)
+--   select id, unnest(array['Biber','Wölfe','Pfadis','Pios','Rover','Leitende']) from public.abteilungen where slug = 'pro-patria';
+-- MiData-Mapping (role_class aus einer echten /oauth/profile-Antwort übernehmen!):
+-- insert into public.midata_role_mapping (abteilung_id, role_class, role) values
+--   (null, 'Group::Abteilung::Abteilungsleitung', 'admin'),
+--   (null, 'Group::Abteilung::Materialwart',      'matchef'),
+--   (null, '*',                                   'member');
+
+-- =====================================================================
+-- ALTE DATEN ÜBERNEHMEN (inventory / reservations)
+-- =====================================================================
+-- alter table public.material add column alt_id bigint;
+-- insert into public.standorte (abteilung_id, name)
+--   select distinct a.id, i.location from public.inventory i, public.abteilungen a
+--   where a.slug = 'pro-patria' and i.location is not null;
+-- insert into public.material (abteilung_id, name, anzahl, standort_id, image_urls, alt_id)
+--   select a.id, i.name, i.quantity, s.id,
+--          case when i.photo_url is null then '{}' else array[i.photo_url] end, i.id
+--   from public.inventory i cross join public.abteilungen a
+--   left join public.standorte s on s.name = i.location and s.abteilung_id = a.id
+--   where a.slug = 'pro-patria';
+-- alter table public.bestellung_items disable trigger bestellung_items_pruefen;
+-- do $$ declare r record; v bigint; abt uuid := (select id from public.abteilungen where slug = 'pro-patria'); begin
+--   for r in select * from public.reservations loop
+--     insert into public.bestellungen (abteilung_id, besteller_id, von, bis, status)
+--     values (abt, r.user_id, r."from", r."to", case when r."to" < now() then 'completed' else 'created' end)
+--     returning id into v;
+--     insert into public.bestellung_items (bestellung_id, material_id, anzahl)
+--     select v, m.id, r.quantity from public.material m where m.alt_id = r.item_id;
+--   end loop; end $$;
+-- alter table public.bestellung_items enable trigger bestellung_items_pruefen;
+-- -- prüfen, dann: drop table public.reservations; drop table public.inventory; alter table public.material drop column alt_id;

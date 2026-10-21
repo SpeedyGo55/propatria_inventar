@@ -28,3 +28,7 @@ coverage
 
 *.tsbuildinfo
 .editorconfig
+
+.env.production
+.env.local
+.temp

@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import { useWindowSize } from '@vueuse/core'
 import { supabase } from '@/utils/supabase.js'
 import { VueFinalModal, ModalsContainer } from 'vue-final-modal'
-import HeaderBar from './HeaderBar.vue'
 
 const { width } = useWindowSize()
 const router = useRouter()

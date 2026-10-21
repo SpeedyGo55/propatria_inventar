@@ -25,7 +25,7 @@ export const detail = (id) =>
     .from('bestellungen')
     .select(DETAIL)
     .eq('id', id)
-    .order('created_at', { referencedTable: 'bestellung_historie', ascending: true })
+    .order('created_at', { referencedTable: 'historie', ascending: true })
     .single()
 
 export const kalender = (abteilungId, von, bis) =>

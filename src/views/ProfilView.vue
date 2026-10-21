@@ -1,49 +1,39 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import { supabase } from '@/utils/supabase.js'
 import { useRouter } from 'vue-router'
-import HeaderBar from '@/components/HeaderBar.vue'
+import { useSessionStore } from '@/stores/session'
+import { useToast } from '@/composables/useToast'
+import { profilNameSetzen } from '@/api/mitglieder'
 
+const s = useSessionStore()
+const toast = useToast()
 const router = useRouter()
-const session = ref(null)
-const loading = ref(true)
 const password = ref('')
 const email = ref('')
 const name = ref('')
-
-supabase.auth.getSession().then(({ data }) => {
-  session.value = data.session
-  loading.value = false
-  if (!data.session) {
-    router.push('/login')
-  }
-})
-supabase.auth.onAuthStateChange((_, _session) => {
-  session.value = _session
-  if (!_session) {
-    router.push('/login')
-  }
-})
 
 const changePassword = async () => {
   try {
     const { error } = await supabase.auth.updateUser({ password: password.value })
     if (error) throw error
-    alert('Password updated successfully!')
+    toast.ok('Password updated successfully!')
     password.value = ''
   } catch (error) {
-    alert('Error updating password: ' + error.message)
+    toast.fehler('Error updating password: ' + error.message)
   }
 }
 
 const changeEmail = async () => {
   try {
     const { error } = await supabase.auth.updateUser({ email: email.value })
+    await profilNameSetzen(s.user.id, name.value)
+    await s.laden()
     if (error) throw error
-    alert('Email update initiated! Please check your new email for confirmation.')
+    toast.ok('Email update initiated! Please check your new email for confirmation.')
     email.value = ''
   } catch (error) {
-    alert('Error updating email: ' + error.message)
+    toast.fehler('Error updating email: ' + error.message)
   }
 }
 
@@ -53,10 +43,10 @@ const changeName = async () => {
       data: { name: name.value },
     })
     if (error) throw error
-    alert('Name updated successfully!')
+    toast.ok('Name updated successfully!')
     name.value = ''
   } catch (error) {
-    alert('Error updating name: ' + error.message)
+    toast.fehler('Error updating name: ' + error.message)
   }
 }
 </script>
@@ -124,7 +114,7 @@ const changeName = async () => {
       </form>
       <button
         type="button"
-        @click="supabase.auth.signOut()"
+        @click="abmelden"
         class="mt-3 bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition duration-200 dark:bg-red-800 dark:hover:bg-red-900"
       >
         Logout

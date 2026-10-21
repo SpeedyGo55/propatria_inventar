@@ -32,3 +32,5 @@ coverage
 .env.production
 .env.local
 .temp
+supabase/.temp
+supabase/.branches

@@ -3,8 +3,7 @@
 -- Einfügen: Dashboard → SQL Editor → alles einfügen → Run
 -- Auf einem LEEREN Projekt ausführen. Alles läuft in einer Transaktion.
 -- =====================================================================
-begin;
-
+--
 -- Interne Funktionen, nicht per API aufrufbar
 create schema if not exists intern;
 
@@ -746,8 +745,6 @@ insert into public.profiles (id, email, display_name)
 select id, email, coalesce(raw_user_meta_data->>'name', split_part(email, '@', 1)) from auth.users
 on conflict do nothing;
 insert into public.ical_tokens (user_id) select id from public.profiles on conflict do nothing;
-
-commit;
 
 -- =====================================================================
 -- SEED (anpassen, dann einzeln ausführen)

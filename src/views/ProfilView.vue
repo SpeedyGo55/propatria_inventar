@@ -1,124 +1,108 @@
 <script setup>
 import { ref } from 'vue'
-import { supabase } from '@/utils/supabase.js'
 import { useRouter } from 'vue-router'
+import { supabase } from '@/utils/supabase'
 import { useSessionStore } from '@/stores/session'
 import { useToast } from '@/composables/useToast'
 import { profilNameSetzen } from '@/api/mitglieder'
+import BaseInput from '@/components/base/BaseInput.vue'
+import BaseButton from '@/components/base/BaseButton.vue'
 
 const s = useSessionStore()
 const toast = useToast()
 const router = useRouter()
+
 const password = ref('')
 const email = ref('')
-const name = ref('')
+const name = ref(s.profile?.display_name ?? '')
+const laedt = ref('') // 'passwort' | 'email' | 'name' | ''
 
-const changePassword = async () => {
+async function changePassword() {
+  laedt.value = 'passwort'
   try {
     const { error } = await supabase.auth.updateUser({ password: password.value })
     if (error) throw error
-    toast.ok('Password updated successfully!')
+    toast.ok('Passwort geändert.')
     password.value = ''
   } catch (error) {
-    toast.fehler('Error updating password: ' + error.message)
+    toast.fehler('Passwort ändern fehlgeschlagen: ' + error.message)
+  } finally {
+    laedt.value = ''
   }
 }
 
-const changeEmail = async () => {
+async function changeEmail() {
+  laedt.value = 'email'
   try {
     const { error } = await supabase.auth.updateUser({ email: email.value })
-    await profilNameSetzen(s.user.id, name.value)
-    await s.laden()
     if (error) throw error
-    toast.ok('Email update initiated! Please check your new email for confirmation.')
+    toast.ok('Bestätigungslink an die neue E-Mail gesendet.')
     email.value = ''
   } catch (error) {
-    toast.fehler('Error updating email: ' + error.message)
+    toast.fehler('E-Mail ändern fehlgeschlagen: ' + error.message)
+  } finally {
+    laedt.value = ''
   }
 }
 
-const changeName = async () => {
+async function changeName() {
+  laedt.value = 'name'
   try {
-    const { error } = await supabase.auth.updateUser({
-      data: { name: name.value },
-    })
+    const { error } = await supabase.auth.updateUser({ data: { name: name.value } })
     if (error) throw error
-    toast.ok('Name updated successfully!')
-    name.value = ''
+    const res = await profilNameSetzen(s.user.id, name.value)
+    if (res.error) throw res.error
+    await s.laden()
+    toast.ok('Name geändert.')
   } catch (error) {
-    toast.fehler('Error updating name: ' + error.message)
+    toast.fehler('Name ändern fehlgeschlagen: ' + error.message)
+  } finally {
+    laedt.value = ''
   }
+}
+
+async function abmelden() {
+  await s.logout()
+  router.push({ name: 'login' })
 }
 </script>
 
 <template>
-  <!-- profile settings page for changing password, email etc -->
-  <div class="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200">
-    <div class="px-3 mt-3">
-      <div class="flex justify-between items-center mb-3">
-        <p class="text-xl font-bold dark:text-white">Profile Settings</p>
-        <button
-          @click="router.back()"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
-        >
-          Zurück
-        </button>
-      </div>
+  <div class="mx-auto max-w-md space-y-8">
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl font-bold dark:text-white">Profil</h1>
+      <BaseButton variant="secondary" @click="router.back()">Zurück</BaseButton>
     </div>
 
-    <div class="max-w-md mx-auto">
-      <p class="text-lg font-bold dark:text-white">Change Password</p>
-      <form @submit.prevent="changePassword">
-        <input
-          type="password"
-          v-model="password"
-          placeholder="New Password"
-          class="border border-gray-300 rounded px-3 py-2 w-full mb-3"
-        />
-        <button
-          type="submit"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
-        >
-          Change Password
-        </button>
-      </form>
-      <p class="text-lg font-bold dark:text-white">Change Email</p>
-      <form @submit.prevent="changeEmail">
-        <input
-          type="email"
-          v-model="email"
-          placeholder="New Email"
-          class="border border-gray-300 rounded px-3 py-2 w-full mb-3"
-        />
-        <button
-          type="submit"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
-        >
-          Change Email
-        </button>
-      </form>
-      <p class="text-lg font-bold dark:text-white">Change Name</p>
-      <form @submit.prevent="changeName">
-        <input
-          type="text"
-          v-model="name"
-          placeholder="New Name"
-          class="border border-gray-300 rounded px-3 py-2 w-full mb-3"
-        />
-        <button
-          type="submit"
-          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition duration-200 dark:bg-blue-700 dark:hover:bg-blue-600"
-        >
-          Change Name
-        </button>
-      </form>
-      <button
-        type="button"
-        @click="abmelden"
-        class="mt-3 bg-red-700 text-white px-4 py-2 rounded hover:bg-red-800 transition duration-200 dark:bg-red-800 dark:hover:bg-red-900"
-      >
-        Logout
-      </button>
-    </div>
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Eingeloggt als <strong>{{ s.profile?.display_name }}</strong> ({{ s.user?.email }})
+    </p>
+
+    <form class="space-y-3" @submit.prevent="changeName">
+      <h2 class="text-lg font-semibold">Name</h2>
+      <BaseInput v-model="name" label="Anzeigename" required />
+      <BaseButton type="submit" :loading="laedt === 'name'">Name speichern</BaseButton>
+    </form>
+
+    <form class="space-y-3" @submit.prevent="changeEmail">
+      <h2 class="text-lg font-semibold">E-Mail</h2>
+      <BaseInput v-model="email" label="Neue E-Mail" type="email" autocomplete="email" required />
+      <BaseButton type="submit" :loading="laedt === 'email'">E-Mail ändern</BaseButton>
+    </form>
+
+    <form class="space-y-3" @submit.prevent="changePassword">
+      <h2 class="text-lg font-semibold">Passwort</h2>
+      <BaseInput
+        v-model="password"
+        label="Neues Passwort"
+        type="password"
+        autocomplete="new-password"
+        minlength="6"
+        required
+      />
+      <BaseButton type="submit" :loading="laedt === 'passwort'">Passwort ändern</BaseButton>
+    </form>
+
+    <BaseButton variant="danger" @click="abmelden">Logout</BaseButton>
   </div>
 </template>

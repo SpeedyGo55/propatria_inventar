@@ -9,7 +9,6 @@ const router = useRouter()
 const { width } = useWindowSize()
 
 const inventory = ref([])
-//const reservations = ref([])
 const loading = ref(true)
 const session = ref(null)
 
@@ -31,19 +30,6 @@ async function fetchInventory() {
 
   inventory.value = data
 }
-
-//async function fetchReservations() {
-//  const { data, error } = await supabase
-//    .from('reservations')
-//    .select('*')
-//    .lt('from', new Date().toISOString())
-//    .gt('to', new Date().toISOString())
-//  if (error) {
-//    return
-//  }
-//
-//  reservations.value = data
-//}
 
 async function update() {
   loading.value = true

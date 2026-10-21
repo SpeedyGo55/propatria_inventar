@@ -3,6 +3,9 @@ import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { ShoppingCartIcon, UserCircleIcon, ArrowRightStartOnRectangleIcon } from '@heroicons/vue/24/outline'
 import { useSessionStore } from '@/stores/session'
+import { useCartStore } from '@/stores/cart'
+
+const cart = useCartStore()
 
 const s = useSessionStore()
 const router = useRouter()
@@ -54,9 +57,14 @@ async function abmelden() {
       </nav>
 
       <div class="ml-auto flex items-center gap-3 md:ml-0">
-        <!-- Anzahl im Warenkorb kommt in Phase 2.4 (cart store) -->
-        <RouterLink v-if="s.hasRole('member')" :to="{ name: 'warenkorb' }" class="hover:text-blue-200">
+        <RouterLink v-if="s.hasRole('member')" :to="{ name: 'warenkorb' }" class="relative hover:text-blue-200">
           <ShoppingCartIcon class="size-6" />
+          <span
+            v-if="cart.anzahl"
+            class="absolute -right-2 -top-2 min-w-5 rounded-full bg-red-500 px-1 text-center text-xs font-bold"
+          >
+            {{ cart.anzahl }}
+          </span>
           <span class="sr-only">Warenkorb</span>
         </RouterLink>
         <RouterLink :to="{ name: 'profil' }" class="hover:text-blue-200" :title="s.profile?.display_name">

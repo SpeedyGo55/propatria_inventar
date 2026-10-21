@@ -44,7 +44,13 @@ insert into public.abteilung_members (abteilung_id, user_id, role) values
 insert into public.gruppen (abteilung_id, name, typ)
 select 'aaaaaaaa-0000-0000-0000-000000000001', g.name, g.typ::public.gruppe_typ
 from (values ('Biber','stufe'), ('Wölfe','stufe'), ('Pfadis','stufe'), ('Pios','stufe'),
-             ('Rover','stufe'), ('Leitende','stufe'), ('SoLa','anlass'), ('PfiLa','anlass')) as g(name, typ);
+             ('Rover','stufe'), ('Leitende','stufe'),
+             ('Sommerlager (SoLa)','anlass'), ('Pfingstlager (PfiLa)','anlass'),
+             ('Herbstweekend (HeWe)','anlass'), ('Herbstlager (HeLa)','anlass'),
+             ('Biwakweekend (BiWe)','anlass'), ('Biberweekend (BiWe)','anlass'),
+             ('NiggiNäggi (NN)','anlass'), ('JPPOP','anlass'),
+             ('Fähnliweekend (FäWe)','anlass'), ('Aktivität (Akti)','anlass'),
+             ('Anderes','sonstiges')) as g(name, typ);
 
 insert into public.kategorien (abteilung_id, name)
 select 'aaaaaaaa-0000-0000-0000-000000000001', unnest(array['Zelte','Küche','Werkzeug','Seile','Verbrauch','Sanität']);

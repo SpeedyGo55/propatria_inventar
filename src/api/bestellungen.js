@@ -1,13 +1,16 @@
 import { supabase } from '@/utils/supabase'
 
+const GRUPPEN = `stufe:gruppen!bestellungen_stufe_id_fkey(id, name),
+  anlass:gruppen!bestellungen_anlass_id_fkey(id, name)`
+
 const DETAIL = `*,
-  gruppe:gruppen(id, name),
+  ${GRUPPEN},
   besteller:profiles(id, display_name, email),
   items:bestellung_items(anzahl, prepared, controlled, material:material(id, name, image_urls)),
   historie:bestellung_historie(id, typ, text, created_at, user:profiles(display_name))`
 
 const LISTE = `id, von, bis, status, gruppe_freitext, created_at,
-  gruppe:gruppen(name),
+  ${GRUPPEN},
   besteller:profiles(display_name),
   items:bestellung_items(anzahl, prepared, controlled, material:material(id, name))`
 
@@ -31,14 +34,14 @@ export const detail = (id) =>
 export const kalender = (abteilungId, von, bis) =>
   supabase.rpc('kalender_belegung', { p_abteilung: abteilungId, p_von: von, p_bis: bis })
 
-// --- Member-Aktionen (RPC, prüfen Verfügbarkeit in der DB) ---
-export const erstellen = ({ abteilungId, von, bis, items, gruppeId = null, gruppeFreitext = null, kommentar = null }) =>
+export const erstellen = ({ abteilungId, von, bis, items, stufeId = null, anlassId = null, gruppeFreitext = null, kommentar = null }) =>
   supabase.rpc('bestellung_erstellen', {
     p_abteilung: abteilungId,
     p_von: von,
     p_bis: bis,
     p_items: items.map(({ material_id, anzahl }) => ({ material_id, anzahl })),
-    p_gruppe_id: gruppeId,
+    p_stufe_id: stufeId,
+    p_anlass_id: anlassId,
     p_gruppe_freitext: gruppeFreitext,
     p_kommentar: kommentar,
   })

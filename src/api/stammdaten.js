@@ -28,6 +28,8 @@ export const gruppen = (abteilungId, nurAktive = true) => {
   if (nurAktive) q = q.eq('aktiv', true)
   return q
 }
+export const stufen = (abteilungId) => gruppen(abteilungId).eq('typ', 'stufe')
+export const anlaesse = (abteilungId) => gruppen(abteilungId).in('typ', ['anlass', 'sonstiges'])
 
 // --- Sammlungen ---
 export const sammlungen = (abteilungId) =>

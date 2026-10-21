@@ -34,3 +34,4 @@ coverage
 .temp
 supabase/.temp
 supabase/.branches
+backup/

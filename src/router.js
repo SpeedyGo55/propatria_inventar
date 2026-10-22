@@ -74,6 +74,24 @@ const routes = [
     component: () => import('@/views/admin/MitgliederView.vue'),
     meta: { rolle: 'admin' },
   },
+  {
+    path: '/kalender',
+    name: 'kalender',
+    component: () => import('@/views/KalenderView.vue'),
+    meta: { rolle: 'guest' },
+  },
+  {
+    path: '/admin/schaeden',
+    name: 'schaeden',
+    component: () => import('@/views/admin/SchaedenView.vue'),
+    meta: { rolle: 'matchef' },
+  },
+  {
+    path: '/admin/statistik',
+    name: 'statistik',
+    component: () => import('@/views/admin/StatistikView.vue'),
+    meta: { rolle: 'matchef' },
+  },
 
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ]

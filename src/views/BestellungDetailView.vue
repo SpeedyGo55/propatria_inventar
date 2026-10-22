@@ -12,6 +12,19 @@ import StatusBadge from '@/components/base/StatusBadge.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
+import SchadenMeldenModal from '@/components/schaden/SchadenMeldenModal.vue'
+
+const schadenMaterial = ref(null)
+const schadenOffen = ref(false)
+const darfSchadenMelden = computed(
+  () =>
+    (istBesteller.value || istMatchef.value) &&
+    ['delivered', 'completed'].includes(b.value?.status),
+)
+function schaden(item) {
+  schadenMaterial.value = item.material
+  schadenOffen.value = true
+}
 
 const props = defineProps({ id: { type: String, required: true } })
 
@@ -185,6 +198,14 @@ async function kommentieren() {
             class="size-10 rounded object-cover"
           />
           <span class="min-w-32 flex-1">{{ i.anzahl }}× {{ i.material.name }}</span>
+          <button
+            v-if="darfSchadenMelden"
+            type="button"
+            class="text-sm text-red-600 hover:underline"
+            @click="schaden(i)"
+          >
+            Schaden
+          </button>
 
           <template v-if="istMatchef">
             <div v-if="bearbeitbar" class="flex items-center gap-1">
@@ -318,6 +339,13 @@ async function kommentieren() {
         <BaseButton type="submit" :disabled="arbeitet || !kommentar.trim()">Senden</BaseButton>
       </form>
     </section>
+
+    <SchadenMeldenModal
+      v-model="schadenOffen"
+      :material="schadenMaterial"
+      :bestellung-id="b.id"
+      @gemeldet="laden"
+    />
 
     <BaseModal v-model="ablehnenOffen" titel="Bestellung ablehnen">
       <BaseInput v-model="grund" label="Grund (sieht der Besteller)" required />

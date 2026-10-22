@@ -95,16 +95,32 @@ async function abmelden() {
     </section>
 
     <nav
-      v-if="s.hasRole('matchef')"
       class="divide-y divide-gray-200 rounded-lg bg-white shadow-sm dark:divide-gray-600 dark:bg-gray-700"
     >
-      <RouterLink :to="{ name: 'stammdaten' }" class="flex items-center justify-between px-4 py-3">
-        Verwaltung (Kategorien, Standorte, Stufen &amp; Anlässe)
-        <ChevronRightIcon class="size-5 text-gray-400" />
+      <RouterLink :to="{ name: 'kalender' }" class="flex items-center justify-between px-4 py-3">
+        Kalender <ChevronRightIcon class="size-5 text-gray-400" />
       </RouterLink>
-      <RouterLink :to="{ name: 'sammlungen' }" class="flex items-center justify-between px-4 py-3">
-        Sammlungen <ChevronRightIcon class="size-5 text-gray-400" />
-      </RouterLink>
+      <template v-if="s.hasRole('matchef')">
+        <RouterLink :to="{ name: 'schaeden' }" class="flex items-center justify-between px-4 py-3">
+          Schäden <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'stammdaten' }"
+          class="flex items-center justify-between px-4 py-3"
+        >
+          Verwaltung (Kategorien, Standorte, Stufen &amp; Anlässe)
+          <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'sammlungen' }"
+          class="flex items-center justify-between px-4 py-3"
+        >
+          Sammlungen <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+        <RouterLink :to="{ name: 'statistik' }" class="flex items-center justify-between px-4 py-3">
+          Statistik <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+      </template>
       <RouterLink
         v-if="s.hasRole('admin')"
         :to="{ name: 'mitglieder' }"

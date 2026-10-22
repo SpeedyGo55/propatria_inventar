@@ -17,10 +17,13 @@ const router = useRouter()
 const links = computed(() =>
   [
     { name: 'material', label: 'Material', rolle: 'guest' },
+    { name: 'kalender', label: 'Kalender', rolle: 'guest' },
     { name: 'bestellungen', label: 'Bestellungen', rolle: 'member' },
     { name: 'matchef', label: 'Matchef', rolle: 'matchef' },
+    { name: 'schaeden', label: 'Schäden', rolle: 'matchef' },
     { name: 'stammdaten', label: 'Verwaltung', rolle: 'matchef' },
     { name: 'sammlungen', label: 'Sammlungen', rolle: 'matchef' },
+    { name: 'statistik', label: 'Statistik', rolle: 'matchef' },
     { name: 'mitglieder', label: 'Mitglieder', rolle: 'admin' },
   ].filter((l) => s.hasRole(l.rolle)),
 )

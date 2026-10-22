@@ -14,6 +14,14 @@ import ZeitraumWahl from '@/components/material/ZeitraumWahl.vue'
 import MaterialFilter from '@/components/material/MaterialFilter.vue'
 import MaterialKarte from '@/components/material/MaterialKarte.vue'
 import MaterialTabelle from '@/components/material/MaterialTabelle.vue'
+import SchadenMeldenModal from '@/components/schaden/SchadenMeldenModal.vue'
+
+const schadenMaterial = ref(null)
+const schadenOffen = ref(false)
+function schaden(m) {
+  schadenMaterial.value = m
+  schadenOffen.value = true
+}
 
 const s = useSessionStore()
 const cart = useCartStore()
@@ -102,6 +110,7 @@ function hinzufuegen(m) {
         :material="m"
         :frei="frei.get(m.id)"
         @hinzufuegen="hinzufuegen"
+        @schaden="schaden"
       />
     </div>
 
@@ -110,5 +119,6 @@ function hinzufuegen(m) {
     <p v-if="gefiltert.length" class="text-center text-sm text-gray-500">
       {{ gefiltert.length }} Einträge
     </p>
+    <SchadenMeldenModal v-model="schadenOffen" :material="schadenMaterial" @gemeldet="laden" />
   </div>
 </template>

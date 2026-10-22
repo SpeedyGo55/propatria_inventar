@@ -6,6 +6,7 @@ import { useAsync } from '@/composables/useAsync'
 import { fuerMatchef, beobachten } from '@/api/bestellungen'
 import { istHeute, istUeberfaellig } from '@/utils/bestellung'
 import BestellungKarte from '@/components/bestellung/BestellungKarte.vue'
+import NachkaufenListe from '@/components/material/NachkaufenListe.vue'
 
 const s = useSessionStore()
 const { data, loading, run } = useAsync(() => fuerMatchef(s.abteilungId))
@@ -55,6 +56,8 @@ const listen = computed(() =>
 <template>
   <div class="space-y-4">
     <h1 class="text-xl font-bold dark:text-white">Matchef</h1>
+
+    <NachkaufenListe />
 
     <nav class="flex gap-1 overflow-x-auto border-b border-gray-300 dark:border-gray-600">
       <button

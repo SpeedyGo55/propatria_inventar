@@ -13,8 +13,8 @@ const s = useSessionStore()
 <template>
   <div class="min-h-screen bg-gray-100 dark:bg-gray-800 dark:text-gray-200">
     <AppHeader v-if="s.user && route.name !== 'login'" />
-    <main class="mx-auto max-w-6xl px-3 py-4 pb-20 md:pb-4">
-      <RouterView />
+    <main class="mx-auto max-w-6xl px-3 py-4 pb-[calc(5rem+env(safe-area-inset-bottom))] md:pb-4">
+        <RouterView />
     </main>
     <BottomNav v-if="s.user && route.name !== 'login'" class="md:hidden" />
     <ToastHost />

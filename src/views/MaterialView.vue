@@ -26,7 +26,11 @@ const standorte = ref([])
 
 async function laden() {
   if (!s.abteilungId) return
-  const [, k, o] = await Promise.all([ladeMaterial().catch(() => null), ladeKategorien(s.abteilungId), ladeStandorte(s.abteilungId)])
+  const [, k, o] = await Promise.all([
+    ladeMaterial().catch(() => null),
+    ladeKategorien(s.abteilungId),
+    ladeStandorte(s.abteilungId),
+  ])
   kategorien.value = k.data ?? []
   standorte.value = o.data ?? []
 }
@@ -67,7 +71,9 @@ function hinzufuegen(m) {
     </div>
 
     <section v-if="s.hasRole('member')" class="rounded-lg bg-white p-3 shadow-sm dark:bg-gray-700">
-      <p class="mb-2 text-sm text-gray-600 dark:text-gray-300">Zeitraum wählen, um die Verfügbarkeit zu sehen:</p>
+      <p class="mb-2 text-sm text-gray-600 dark:text-gray-300">
+        Zeitraum wählen, um die Verfügbarkeit zu sehen:
+      </p>
       <ZeitraumWahl />
     </section>
 
@@ -86,7 +92,10 @@ function hinzufuegen(m) {
       {{ material?.length ? 'Nichts gefunden.' : 'Noch kein Material erfasst.' }}
     </p>
 
-    <div v-else-if="ansicht === 'grid'" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+    <div
+      v-else-if="ansicht === 'grid'"
+      class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+    >
       <MaterialKarte
         v-for="m in gefiltert"
         :key="m.id"
@@ -98,6 +107,8 @@ function hinzufuegen(m) {
 
     <MaterialTabelle v-else :material="gefiltert" :frei="frei" @hinzufuegen="hinzufuegen" />
 
-    <p v-if="gefiltert.length" class="text-center text-sm text-gray-500">{{ gefiltert.length }} Einträge</p>
+    <p v-if="gefiltert.length" class="text-center text-sm text-gray-500">
+      {{ gefiltert.length }} Einträge
+    </p>
   </div>
 </template>

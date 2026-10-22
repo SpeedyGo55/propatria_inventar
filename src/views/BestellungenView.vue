@@ -9,7 +9,11 @@ import BestellungKarte from '@/components/bestellung/BestellungKarte.vue'
 
 const s = useSessionStore()
 const { data, loading, run } = useAsync(() => meine(s.user.id))
-watch(() => s.user?.id, (id) => id && run().catch(() => {}), { immediate: true })
+watch(
+  () => s.user?.id,
+  (id) => id && run().catch(() => {}),
+  { immediate: true },
+)
 
 const aktuell = computed(() =>
   (data.value ?? []).filter(istAktiv).sort((a, b) => a.von.localeCompare(b.von)),
@@ -27,7 +31,9 @@ const vergangen = computed(() => (data.value ?? []).filter((b) => !istAktiv(b)))
         <h2 class="font-semibold">Aktuell &amp; kommend</h2>
         <p v-if="!aktuell.length" class="text-gray-500">
           Keine offenen Bestellungen.
-          <RouterLink :to="{ name: 'material' }" class="text-blue-600 hover:underline">Material ansehen</RouterLink>
+          <RouterLink :to="{ name: 'material' }" class="text-blue-600 hover:underline"
+            >Material ansehen</RouterLink
+          >
         </p>
         <BestellungKarte v-for="b in aktuell" :key="b.id" :bestellung="b" />
       </section>

@@ -38,7 +38,8 @@ const TABS = [
       },
       { key: 'aktiv', label: 'Aktiv', typ: 'checkbox', standard: true },
     ],
-    loeschHinweis: 'Tipp: Statt löschen besser „Aktiv“ ausschalten – alte Bestellungen behalten dann ihre Stufe/ihren Anlass.',
+    loeschHinweis:
+      'Tipp: Statt löschen besser „Aktiv“ ausschalten – alte Bestellungen behalten dann ihre Stufe/ihren Anlass.',
   },
 ]
 
@@ -55,7 +56,11 @@ const tab = computed(() => TABS.find((t) => t.key === tabKey.value) ?? TABS[0])
         v-for="t in TABS"
         :key="t.key"
         type="button"
-        :class="t.key === tab.key ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500'"
+        :class="
+          t.key === tab.key
+            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+            : 'border-transparent text-gray-500'
+        "
         class="whitespace-nowrap border-b-2 px-4 py-2 font-medium"
         @click="tabKey = t.key"
       >
@@ -64,6 +69,11 @@ const tab = computed(() => TABS.find((t) => t.key === tabKey.value) ?? TABS[0])
     </nav>
 
     <!-- :key sorgt dafür, dass die Tabelle beim Tab-Wechsel neu lädt -->
-    <StammdatenTabelle :key="tab.key" :tabelle="tab.key" :felder="tab.felder" :loesch-hinweis="tab.loeschHinweis" />
+    <StammdatenTabelle
+      :key="tab.key"
+      :tabelle="tab.key"
+      :felder="tab.felder"
+      :loesch-hinweis="tab.loeschHinweis"
+    />
   </div>
 </template>

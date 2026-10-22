@@ -1,13 +1,21 @@
 <script setup>
 import { useToast } from '@/composables/useToast'
-import { CheckCircleIcon, ExclamationTriangleIcon, InformationCircleIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import {
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  XMarkIcon,
+} from '@heroicons/vue/24/outline'
 
 const { toasts } = useToast()
 
 const STIL = {
-  ok:     { icon: CheckCircleIcon,         klasse: 'bg-green-600 text-white' },
+  ok: { icon: CheckCircleIcon, klasse: 'bg-green-600 text-white' },
   fehler: { icon: ExclamationTriangleIcon, klasse: 'bg-red-600 text-white' },
-  info:   { icon: InformationCircleIcon,   klasse: 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900' },
+  info: {
+    icon: InformationCircleIcon,
+    klasse: 'bg-gray-800 text-white dark:bg-gray-200 dark:text-gray-900',
+  },
 }
 
 function schliessen(id) {
@@ -35,7 +43,11 @@ function schliessen(id) {
       >
         <component :is="STIL[t.typ].icon" class="size-5 shrink-0" />
         <p class="flex-1 text-sm">{{ t.text }}</p>
-        <button type="button" class="shrink-0 opacity-70 hover:opacity-100" @click="schliessen(t.id)">
+        <button
+          type="button"
+          class="shrink-0 opacity-70 hover:opacity-100"
+          @click="schliessen(t.id)"
+        >
           <XMarkIcon class="size-5" />
           <span class="sr-only">Schliessen</span>
         </button>

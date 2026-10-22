@@ -15,7 +15,9 @@ const s = useSessionStore()
 <template>
   <div class="overflow-x-auto rounded-lg bg-white shadow-md dark:bg-gray-700">
     <table class="min-w-full text-sm">
-      <thead class="bg-gray-200 text-left text-xs uppercase text-gray-600 dark:bg-gray-600 dark:text-gray-200">
+      <thead
+        class="bg-gray-200 text-left text-xs uppercase text-gray-600 dark:bg-gray-600 dark:text-gray-200"
+      >
         <tr>
           <th class="px-3 py-3">Name</th>
           <th class="hidden px-3 py-3 md:table-cell">Kategorien</th>
@@ -31,7 +33,9 @@ const s = useSessionStore()
           class="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-600"
         >
           <td class="px-3 py-2 font-medium">{{ m.name }}</td>
-          <td class="hidden px-3 py-2 md:table-cell">{{ m.kategorien.map((k) => k.kategorie.name).join(', ') }}</td>
+          <td class="hidden px-3 py-2 md:table-cell">
+            {{ m.kategorien.map((k) => k.kategorie.name).join(', ') }}
+          </td>
           <td class="hidden px-3 py-2 sm:table-cell">{{ m.standort?.name }}</td>
           <td class="px-3 py-2"><VerfuegbarBadge :material="m" :frei="frei.get(m.id)" /></td>
           <td class="whitespace-nowrap px-3 py-2 text-right">

@@ -55,7 +55,10 @@ async function passwortVergessen() {
   <div class="mx-auto mt-10 max-w-md">
     <h1 class="mb-4 text-center text-2xl font-bold dark:text-white">Pfadi Pro Patria Material</h1>
 
-    <form class="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-700" @submit.prevent="login">
+    <form
+      class="space-y-4 rounded-lg bg-white p-6 shadow-md dark:bg-gray-700"
+      @submit.prevent="login"
+    >
       <BaseInput v-model="email" label="E-Mail" type="email" autocomplete="email" required />
       <BaseInput
         v-model="password"
@@ -67,7 +70,11 @@ async function passwortVergessen() {
       <BaseButton type="submit" class="w-full" :loading="loading">Login</BaseButton>
 
       <div class="text-sm">
-        <button type="button" class="text-blue-600 hover:underline dark:text-blue-400" @click="passwortVergessen">
+        <button
+          type="button"
+          class="text-blue-600 hover:underline dark:text-blue-400"
+          @click="passwortVergessen"
+        >
           Passwort vergessen?
         </button>
       </div>

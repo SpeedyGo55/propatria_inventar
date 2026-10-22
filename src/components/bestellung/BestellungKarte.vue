@@ -20,16 +20,22 @@ defineProps({
         <p class="truncate font-semibold">{{ zuordnung(bestellung) }}</p>
         <p class="text-sm text-gray-600 dark:text-gray-300">
           {{ datum(bestellung.von) }} – {{ datum(bestellung.bis) }}
-          <span v-if="istUeberfaellig(bestellung)" class="ml-1 font-medium text-red-600">überfällig</span>
+          <span v-if="istUeberfaellig(bestellung)" class="ml-1 font-medium text-red-600"
+            >überfällig</span
+          >
         </p>
-        <p v-if="zeigeBesteller && bestellung.besteller" class="text-sm text-gray-500 dark:text-gray-400">
+        <p
+          v-if="zeigeBesteller && bestellung.besteller"
+          class="text-sm text-gray-500 dark:text-gray-400"
+        >
           {{ bestellung.besteller.display_name }}
         </p>
       </div>
       <StatusBadge :status="bestellung.status" />
     </div>
     <p class="mt-2 truncate text-sm text-gray-500 dark:text-gray-400">
-      {{ stueck(bestellung) }} Stk.: {{ bestellung.items.map((i) => `${i.anzahl}× ${i.material.name}`).join(', ') }}
+      {{ stueck(bestellung) }} Stk.:
+      {{ bestellung.items.map((i) => `${i.anzahl}× ${i.material.name}`).join(', ') }}
     </p>
   </RouterLink>
 </template>

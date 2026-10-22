@@ -2,7 +2,7 @@
 -- Voraussetzung: frischer Stand (npx supabase db reset)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(24);
+select plan(25);
 
 -- =========================================================
 -- MEMBER (33333333-…)
@@ -101,6 +101,10 @@ select throws_like(
 select lives_ok(
   $$ update public.material set beschreibung = 'geprüft' where name = 'Axt' $$,
   'Matchef bearbeitet Material');
+
+select throws_ok(
+  $$ select public.mitglied_hinzufuegen('aaaaaaaa-0000-0000-0000-000000000001', 'neu@test.ch', 'admin') $$,
+  '42501', null, 'Matchef kann keine Mitglieder hinzufügen');
 
 -- Matchef darf keine Rollen ändern (0 Zeilen, kein Fehler)
 update public.abteilung_members set role = 'admin' where user_id = '33333333-3333-3333-3333-333333333333';

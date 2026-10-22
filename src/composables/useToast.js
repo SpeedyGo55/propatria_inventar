@@ -6,5 +6,10 @@ export function useToast() {
     toasts.value.push({ id, text, typ })
     setTimeout(() => (toasts.value = toasts.value.filter((t) => t.id !== id)), 4000)
   }
-  return { toasts, info: (t) => push(t), ok: (t) => push(t, 'ok'), fehler: (t) => push(t, 'fehler') }
+  return {
+    toasts,
+    info: (t) => push(t),
+    ok: (t) => push(t, 'ok'),
+    fehler: (t) => push(t, 'fehler'),
+  }
 }

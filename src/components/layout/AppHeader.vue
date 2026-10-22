@@ -1,7 +1,11 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { ShoppingCartIcon, UserCircleIcon, ArrowRightStartOnRectangleIcon } from '@heroicons/vue/24/outline'
+import {
+  ShoppingCartIcon,
+  UserCircleIcon,
+  ArrowRightStartOnRectangleIcon,
+} from '@heroicons/vue/24/outline'
 import { useSessionStore } from '@/stores/session'
 import { useCartStore } from '@/stores/cart'
 
@@ -16,13 +20,14 @@ const links = computed(() =>
     { name: 'bestellungen', label: 'Bestellungen', rolle: 'member' },
     { name: 'matchef', label: 'Matchef', rolle: 'matchef' },
     { name: 'stammdaten', label: 'Verwaltung', rolle: 'matchef' },
+    { name: 'sammlungen', label: 'Sammlungen', rolle: 'matchef' },
     { name: 'mitglieder', label: 'Mitglieder', rolle: 'admin' },
   ].filter((l) => s.hasRole(l.rolle)),
 )
 
 async function abmelden() {
   await s.logout()
-  router.push({ name: 'login' })
+  router.replace({ name: 'login' })
 }
 </script>
 
@@ -30,7 +35,12 @@ async function abmelden() {
   <header class="bg-blue-600 px-4 py-3 text-white dark:bg-blue-800">
     <div class="mx-auto flex max-w-6xl items-center gap-4">
       <RouterLink :to="{ name: 'material' }" class="flex items-center gap-2 text-lg font-bold">
-        <img v-if="s.abteilung?.logo_url" :src="s.abteilung.logo_url" alt="" class="size-8 rounded" />
+        <img
+          v-if="s.abteilung?.logo_url"
+          :src="s.abteilung.logo_url"
+          alt=""
+          class="size-8 rounded"
+        />
         <span class="truncate">{{ s.abteilung?.name ?? 'Pfadi Pro Patria Material' }}</span>
       </RouterLink>
 
@@ -57,7 +67,11 @@ async function abmelden() {
       </nav>
 
       <div class="ml-auto flex items-center gap-3 md:ml-0">
-        <RouterLink v-if="s.hasRole('member')" :to="{ name: 'warenkorb' }" class="relative hover:text-blue-200">
+        <RouterLink
+          v-if="s.hasRole('member')"
+          :to="{ name: 'warenkorb' }"
+          class="relative hover:text-blue-200"
+        >
           <ShoppingCartIcon class="size-6" />
           <span
             v-if="cart.anzahl"
@@ -67,7 +81,11 @@ async function abmelden() {
           </span>
           <span class="sr-only">Warenkorb</span>
         </RouterLink>
-        <RouterLink :to="{ name: 'profil' }" class="hover:text-blue-200" :title="s.profile?.display_name">
+        <RouterLink
+          :to="{ name: 'profil' }"
+          class="hover:text-blue-200"
+          :title="s.profile?.display_name"
+        >
           <UserCircleIcon class="size-6" />
           <span class="sr-only">Profil</span>
         </RouterLink>

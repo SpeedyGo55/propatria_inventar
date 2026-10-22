@@ -68,7 +68,9 @@ const aktionen = computed(() => {
   if (!b.value || !istMatchef.value) return []
   return aktionenFuer(b.value.status).map((a) => ({
     ...a,
-    gesperrt: (a.nach === 'delivered' && !allesGeruestet.value) || (a.nach === 'completed' && !allesKontrolliert.value),
+    gesperrt:
+      (a.nach === 'delivered' && !allesGeruestet.value) ||
+      (a.nach === 'completed' && !allesKontrolliert.value),
   }))
 })
 
@@ -103,7 +105,10 @@ function anzahlAendern(item, n) {
 }
 
 function kommentarSpeichern() {
-  ausfuehren(() => api.aendern(b.value.id, { matchef_kommentar: matchefKommentar.value.trim() || null }), 'Gespeichert')
+  ausfuehren(
+    () => api.aendern(b.value.id, { matchef_kommentar: matchefKommentar.value.trim() || null }),
+    'Gespeichert',
+  )
 }
 
 // --- Besteller ---
@@ -151,11 +156,14 @@ async function kommentieren() {
         <span v-if="istUeberfaellig(b)" class="ml-1 font-medium text-red-600">überfällig</span>
       </p>
       <p v-if="b.besteller" class="text-sm text-gray-500 dark:text-gray-400">
-        Bestellt von {{ b.besteller.display_name }}<template v-if="istMatchef"> ({{ b.besteller.email }})</template>
-        am {{ datumZeit(b.created_at) }}
+        Bestellt von {{ b.besteller.display_name
+        }}<template v-if="istMatchef"> ({{ b.besteller.email }})</template> am
+        {{ datumZeit(b.created_at) }}
       </p>
       <p v-if="b.kommentar" class="whitespace-pre-line pt-2">{{ b.kommentar }}</p>
-      <p v-if="b.ablehnungsgrund" class="rounded bg-red-50 p-2 text-red-800">Abgelehnt: {{ b.ablehnungsgrund }}</p>
+      <p v-if="b.ablehnungsgrund" class="rounded bg-red-50 p-2 text-red-800">
+        Abgelehnt: {{ b.ablehnungsgrund }}
+      </p>
       <p v-if="b.matchef_kommentar && !istMatchef" class="rounded bg-blue-50 p-2 text-blue-900">
         Matchef: {{ b.matchef_kommentar }}
       </p>
@@ -165,21 +173,56 @@ async function kommentieren() {
     <section class="rounded-lg bg-white p-4 shadow-sm dark:bg-gray-700">
       <h2 class="mb-2 font-semibold">Material</h2>
       <ul class="divide-y divide-gray-200 dark:divide-gray-600">
-        <li v-for="i in b.items" :key="i.material.id" class="flex flex-wrap items-center gap-3 py-2">
-          <img v-if="i.material.image_urls?.[0]" :src="i.material.image_urls[0]" alt="" class="size-10 rounded object-cover" />
+        <li
+          v-for="i in b.items"
+          :key="i.material.id"
+          class="flex flex-wrap items-center gap-3 py-2"
+        >
+          <img
+            v-if="i.material.image_urls?.[0]"
+            :src="i.material.image_urls[0]"
+            alt=""
+            class="size-10 rounded object-cover"
+          />
           <span class="min-w-32 flex-1">{{ i.anzahl }}× {{ i.material.name }}</span>
 
           <template v-if="istMatchef">
             <div v-if="bearbeitbar" class="flex items-center gap-1">
-              <button type="button" class="rounded border border-gray-300 px-2 dark:border-gray-500" :disabled="arbeitet" @click="anzahlAendern(i, i.anzahl - 1)">−</button>
-              <button type="button" class="rounded border border-gray-300 px-2 dark:border-gray-500" :disabled="arbeitet" @click="anzahlAendern(i, i.anzahl + 1)">+</button>
+              <button
+                type="button"
+                class="rounded border border-gray-300 px-2 dark:border-gray-500"
+                :disabled="arbeitet"
+                @click="anzahlAendern(i, i.anzahl - 1)"
+              >
+                −
+              </button>
+              <button
+                type="button"
+                class="rounded border border-gray-300 px-2 dark:border-gray-500"
+                :disabled="arbeitet"
+                @click="anzahlAendern(i, i.anzahl + 1)"
+              >
+                +
+              </button>
             </div>
             <label class="flex items-center gap-1 text-sm">
-              <input type="checkbox" class="size-4" :checked="i.prepared" :disabled="arbeitet || !bearbeitbar" @change="haken(i, 'prepared')" />
+              <input
+                type="checkbox"
+                class="size-4"
+                :checked="i.prepared"
+                :disabled="arbeitet || !bearbeitbar"
+                @change="haken(i, 'prepared')"
+              />
               gerüstet
             </label>
             <label class="flex items-center gap-1 text-sm">
-              <input type="checkbox" class="size-4" :checked="i.controlled" :disabled="arbeitet || b.status !== 'delivered'" @change="haken(i, 'controlled')" />
+              <input
+                type="checkbox"
+                class="size-4"
+                :checked="i.controlled"
+                :disabled="arbeitet || b.status !== 'delivered'"
+                @change="haken(i, 'controlled')"
+              />
               kontrolliert
             </label>
           </template>
@@ -202,31 +245,52 @@ async function kommentieren() {
         </BaseButton>
       </div>
       <p v-if="aktionen.some((a) => a.gesperrt)" class="text-sm text-gray-500">
-        „Ausgeben“ geht erst, wenn alles gerüstet ist, „Rücknahme abschliessen“ erst, wenn alles kontrolliert ist.
+        „Ausgeben“ geht erst, wenn alles gerüstet ist, „Rücknahme abschliessen“ erst, wenn alles
+        kontrolliert ist.
       </p>
       <div>
-        <label for="mk" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kommentar für den Besteller</label>
+        <label for="mk" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >Kommentar für den Besteller</label
+        >
         <textarea
           id="mk"
           v-model="matchefKommentar"
           rows="2"
           class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-500 dark:bg-gray-600"
         />
-        <BaseButton variant="secondary" class="mt-2" :disabled="arbeitet" @click="kommentarSpeichern">Speichern</BaseButton>
+        <BaseButton
+          variant="secondary"
+          class="mt-2"
+          :disabled="arbeitet"
+          @click="kommentarSpeichern"
+          >Speichern</BaseButton
+        >
       </div>
     </section>
 
     <!-- Besteller / Enddatum -->
-    <section v-if="(istBesteller || istMatchef) && istAktiv(b)" class="rounded-lg bg-white p-4 shadow-sm dark:bg-gray-700">
+    <section
+      v-if="(istBesteller || istMatchef) && istAktiv(b)"
+      class="rounded-lg bg-white p-4 shadow-sm dark:bg-gray-700"
+    >
       <h2 class="mb-2 font-semibold">Enddatum ändern</h2>
       <div class="flex flex-wrap items-end gap-2">
-        <BaseInput v-model="neuesBis" type="date" label="Neues Enddatum" :min="alsDatumInput(b.von)" />
-        <BaseButton variant="secondary" :disabled="arbeitet || !neuesBis" @click="verlaengern">Ändern</BaseButton>
+        <BaseInput
+          v-model="neuesBis"
+          type="date"
+          label="Neues Enddatum"
+          :min="alsDatumInput(b.von)"
+        />
+        <BaseButton variant="secondary" :disabled="arbeitet || !neuesBis" @click="verlaengern"
+          >Ändern</BaseButton
+        >
       </div>
     </section>
 
     <div v-if="istBesteller" class="flex flex-wrap gap-2">
-      <BaseButton v-if="bearbeitbar" variant="danger" :disabled="arbeitet" @click="stornieren">Stornieren</BaseButton>
+      <BaseButton v-if="bearbeitbar" variant="danger" :disabled="arbeitet" @click="stornieren"
+        >Stornieren</BaseButton
+      >
       <BaseButton variant="secondary" @click="nochmals">Nochmals bestellen</BaseButton>
     </div>
 
@@ -236,10 +300,13 @@ async function kommentieren() {
       <ol class="space-y-2 border-l-2 border-gray-200 pl-4 dark:border-gray-600">
         <li v-for="h in historie" :key="h.id">
           <p class="text-sm">
-            <span class="font-medium">{{ historieText(h.typ) }}</span> · {{ datumZeit(h.created_at) }}
+            <span class="font-medium">{{ historieText(h.typ) }}</span> ·
+            {{ datumZeit(h.created_at) }}
             <template v-if="h.user"> · {{ h.user.display_name }}</template>
           </p>
-          <p v-if="h.text" class="whitespace-pre-line text-sm text-gray-600 dark:text-gray-300">{{ h.text }}</p>
+          <p v-if="h.text" class="whitespace-pre-line text-sm text-gray-600 dark:text-gray-300">
+            {{ h.text }}
+          </p>
         </li>
       </ol>
       <form class="mt-3 flex gap-2" @submit.prevent="kommentieren">
@@ -256,7 +323,9 @@ async function kommentieren() {
       <BaseInput v-model="grund" label="Grund (sieht der Besteller)" required />
       <template #footer>
         <BaseButton variant="secondary" @click="ablehnenOffen = false">Abbrechen</BaseButton>
-        <BaseButton variant="danger" :disabled="!grund.trim()" @click="ablehnen">Ablehnen</BaseButton>
+        <BaseButton variant="danger" :disabled="!grund.trim()" @click="ablehnen"
+          >Ablehnen</BaseButton
+        >
       </template>
     </BaseModal>
   </div>

@@ -32,8 +32,16 @@ const tagesende = () => {
 
 const TABS = [
   { key: 'offen', titel: 'Offen', filter: (b) => b.status === 'pending' },
-  { key: 'abholen', titel: 'Abholbereit', filter: (b) => b.status === 'created' && new Date(b.von) <= tagesende() },
-  { key: 'zurueck', titel: 'Heute zurück', filter: (b) => b.status === 'delivered' && istHeute(b.bis) },
+  {
+    key: 'abholen',
+    titel: 'Abholbereit',
+    filter: (b) => b.status === 'created' && new Date(b.von) <= tagesende(),
+  },
+  {
+    key: 'zurueck',
+    titel: 'Heute zurück',
+    filter: (b) => b.status === 'delivered' && istHeute(b.bis),
+  },
   { key: 'ueberfaellig', titel: 'Überfällig', filter: istUeberfaellig, rot: true },
   { key: 'alle', titel: 'Alle aktiven', filter: () => true },
 ]
@@ -53,14 +61,22 @@ const listen = computed(() =>
         v-for="t in TABS"
         :key="t.key"
         type="button"
-        :class="t.key === tabKey ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500'"
+        :class="
+          t.key === tabKey
+            ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+            : 'border-transparent text-gray-500'
+        "
         class="flex items-center gap-1 whitespace-nowrap border-b-2 px-3 py-2 font-medium"
         @click="tabKey = t.key"
       >
         {{ t.titel }}
         <span
           v-if="listen[t.key].length"
-          :class="t.rot ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'"
+          :class="
+            t.rot
+              ? 'bg-red-500 text-white'
+              : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
+          "
           class="rounded-full px-1.5 text-xs"
         >
           {{ listen[t.key].length }}
@@ -69,7 +85,9 @@ const listen = computed(() =>
     </nav>
 
     <p v-if="loading && !data" class="text-gray-500">Lädt …</p>
-    <p v-else-if="!listen[tabKey]?.length" class="py-10 text-center text-gray-500">Nichts zu tun 🎉</p>
+    <p v-else-if="!listen[tabKey]?.length" class="py-10 text-center text-gray-500">
+      Nichts zu tun 🎉
+    </p>
     <div v-else class="space-y-2">
       <BestellungKarte v-for="b in listen[tabKey]" :key="b.id" :bestellung="b" zeige-besteller />
     </div>

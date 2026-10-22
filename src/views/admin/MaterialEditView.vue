@@ -5,7 +5,14 @@ import imageCompression from 'browser-image-compression'
 import { TrashIcon, PhotoIcon } from '@heroicons/vue/24/outline'
 import { useSessionStore } from '@/stores/session'
 import { useToast } from '@/composables/useToast'
-import { materialEinzeln, materialSpeichern, kategorienSetzen, archivieren, bildHochladen, bildLoeschen } from '@/api/material'
+import {
+  materialEinzeln,
+  materialSpeichern,
+  kategorienSetzen,
+  archivieren,
+  bildHochladen,
+  bildLoeschen,
+} from '@/api/material'
 import { kategorien as ladeKategorien, standorte as ladeStandorte } from '@/api/stammdaten'
 import { ZUSTAENDE } from '@/utils/material'
 import BaseInput from '@/components/base/BaseInput.vue'
@@ -19,13 +26,36 @@ const toast = useToast()
 const router = useRouter()
 
 // Nur diese Spalten werden gespeichert (eingebettete Objekte wie "standort" fliegen raus)
-const SPALTEN = ['name', 'beschreibung', 'anzahl', 'consumable', 'min_bestand', 'standort_id', 'zustand',
-                 'gewicht_kg', 'inventarnummer', 'kaufdatum', 'kaufpreis', 'image_urls', 'only_internal']
+const SPALTEN = [
+  'name',
+  'beschreibung',
+  'anzahl',
+  'consumable',
+  'min_bestand',
+  'standort_id',
+  'zustand',
+  'gewicht_kg',
+  'inventarnummer',
+  'kaufdatum',
+  'kaufpreis',
+  'image_urls',
+  'only_internal',
+]
 
 const form = ref({
-  name: '', beschreibung: '', anzahl: 1, consumable: false, min_bestand: null, standort_id: null,
-  zustand: null, gewicht_kg: null, inventarnummer: '', kaufdatum: '', kaufpreis: null,
-  image_urls: [], only_internal: true,
+  name: '',
+  beschreibung: '',
+  anzahl: 1,
+  consumable: false,
+  min_bestand: null,
+  standort_id: null,
+  zustand: null,
+  gewicht_kg: null,
+  inventarnummer: '',
+  kaufdatum: '',
+  kaufpreis: null,
+  image_urls: [],
+  only_internal: true,
 })
 const kategorieIds = ref([])
 const kategorien = ref([])
@@ -35,7 +65,9 @@ const laedt = ref(true)
 const speichert = ref(false)
 const bildLaedt = ref(false)
 
-const standortOptionen = computed(() => standorte.value.map((o) => ({ value: o.id, label: o.name })))
+const standortOptionen = computed(() =>
+  standorte.value.map((o) => ({ value: o.id, label: o.name })),
+)
 
 onMounted(async () => {
   const [k, o] = await Promise.all([ladeKategorien(s.abteilungId), ladeStandorte(s.abteilungId)])
@@ -48,7 +80,9 @@ onMounted(async () => {
       toast.fehler('Material nicht gefunden')
       return router.replace({ name: 'material' })
     }
-    form.value = Object.fromEntries(SPALTEN.map((k) => [k, data[k] ?? (k === 'image_urls' ? [] : null)]))
+    form.value = Object.fromEntries(
+      SPALTEN.map((k) => [k, data[k] ?? (k === 'image_urls' ? [] : null)]),
+    )
     kategorieIds.value = data.kategorien.map((k) => k.kategorie_id)
   }
   laedt.value = false
@@ -66,7 +100,11 @@ async function bilderGewaehlt(ev) {
   bildLaedt.value = true
   try {
     for (const datei of dateien) {
-      const klein = await imageCompression(datei, { maxSizeMB: 0.5, maxWidthOrHeight: 1600, useWebWorker: true })
+      const klein = await imageCompression(datei, {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1600,
+        useWebWorker: true,
+      })
       form.value.image_urls.push(await bildHochladen(s.abteilungId, klein))
     }
   } catch (e) {
@@ -89,7 +127,9 @@ function fehlerText(e) {
 async function speichern() {
   speichert.value = true
   // '' → null, Mindestbestand nur bei Verbrauchsmaterial
-  const felder = Object.fromEntries(Object.entries(form.value).map(([k, v]) => [k, v === '' ? null : v]))
+  const felder = Object.fromEntries(
+    Object.entries(form.value).map(([k, v]) => [k, v === '' ? null : v]),
+  )
   if (!felder.consumable) felder.min_bestand = null
   if (props.id) felder.id = Number(props.id)
 
@@ -108,7 +148,12 @@ async function speichern() {
 }
 
 async function archivierenKlick() {
-  if (!confirm(`„${form.value.name}“ archivieren? Es verschwindet aus der Liste, alte Bestellungen bleiben erhalten.`)) return
+  if (
+    !confirm(
+      `„${form.value.name}“ archivieren? Es verschwindet aus der Liste, alte Bestellungen bleiben erhalten.`,
+    )
+  )
+    return
   const { error } = await archivieren(Number(props.id))
   if (error) return toast.fehler(error.message)
   toast.ok('Archiviert')
@@ -121,7 +166,9 @@ async function archivierenKlick() {
 
   <form v-else class="mx-auto max-w-2xl space-y-6" @submit.prevent="speichern">
     <div class="flex items-center justify-between">
-      <h1 class="text-xl font-bold dark:text-white">{{ id ? 'Material bearbeiten' : 'Neues Material' }}</h1>
+      <h1 class="text-xl font-bold dark:text-white">
+        {{ id ? 'Material bearbeiten' : 'Neues Material' }}
+      </h1>
       <BaseButton variant="secondary" @click="router.back()">Abbrechen</BaseButton>
     </div>
 
@@ -129,7 +176,9 @@ async function archivierenKlick() {
     <section class="space-y-3 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-700">
       <BaseInput v-model="form.name" label="Name" required />
       <div>
-        <label for="beschreibung" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Beschreibung</label>
+        <label for="beschreibung" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >Beschreibung</label
+        >
         <textarea
           id="beschreibung"
           v-model="form.beschreibung"
@@ -139,10 +188,16 @@ async function archivierenKlick() {
       </div>
       <div class="grid grid-cols-2 gap-3">
         <BaseInput v-model.number="form.anzahl" label="Anzahl" type="number" min="0" required />
-        <BaseSelect v-model="form.standort_id" label="Standort" :optionen="standortOptionen" platzhalter="– kein –" />
+        <BaseSelect
+          v-model="form.standort_id"
+          label="Standort"
+          :optionen="standortOptionen"
+          platzhalter="– kein –"
+        />
       </div>
       <label class="flex items-center gap-2 text-sm">
-        <input v-model="form.consumable" type="checkbox" class="size-4" /> Verbrauchsmaterial (wird bei Rückgabe abgebucht)
+        <input v-model="form.consumable" type="checkbox" class="size-4" /> Verbrauchsmaterial (wird
+        bei Rückgabe abgebucht)
       </label>
       <BaseInput
         v-if="form.consumable"
@@ -161,13 +216,17 @@ async function archivierenKlick() {
           v-for="k in kategorien"
           :key="k.id"
           type="button"
-          :class="kategorieIds.includes(k.id) ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-600'"
+          :class="
+            kategorieIds.includes(k.id) ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-600'
+          "
           class="rounded-full px-3 py-1 text-sm"
           @click="kategorieUmschalten(k.id)"
         >
           {{ k.name }}
         </button>
-        <p v-if="!kategorien.length" class="text-sm text-gray-500">Noch keine Kategorien – unter „Verwaltung“ anlegen.</p>
+        <p v-if="!kategorien.length" class="text-sm text-gray-500">
+          Noch keine Kategorien – unter „Verwaltung“ anlegen.
+        </p>
       </div>
     </section>
 
@@ -175,7 +234,11 @@ async function archivierenKlick() {
     <section class="space-y-2 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-700">
       <h2 class="font-semibold">Bilder</h2>
       <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
-        <div v-for="url in form.image_urls" :key="url" class="relative aspect-square overflow-hidden rounded">
+        <div
+          v-for="url in form.image_urls"
+          :key="url"
+          class="relative aspect-square overflow-hidden rounded"
+        >
           <img :src="url" alt="" class="size-full object-cover" />
           <button
             type="button"
@@ -190,7 +253,14 @@ async function archivierenKlick() {
         >
           <PhotoIcon class="size-8" />
           {{ bildLaedt ? 'Lädt …' : 'Hinzufügen' }}
-          <input type="file" accept="image/*" multiple class="sr-only" :disabled="bildLaedt" @change="bilderGewaehlt" />
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            class="sr-only"
+            :disabled="bildLaedt"
+            @change="bilderGewaehlt"
+          />
         </label>
       </div>
     </section>
@@ -199,17 +269,36 @@ async function archivierenKlick() {
     <details class="rounded-lg bg-white p-4 shadow-sm dark:bg-gray-700">
       <summary class="cursor-pointer font-semibold">Weitere Angaben</summary>
       <div class="mt-3 grid grid-cols-2 gap-3">
-        <BaseSelect v-model="form.zustand" label="Zustand" :optionen="ZUSTAENDE" platzhalter="– unbekannt –" />
-        <BaseInput v-model.number="form.gewicht_kg" label="Gewicht (kg)" type="number" step="0.01" min="0" />
+        <BaseSelect
+          v-model="form.zustand"
+          label="Zustand"
+          :optionen="ZUSTAENDE"
+          platzhalter="– unbekannt –"
+        />
+        <BaseInput
+          v-model.number="form.gewicht_kg"
+          label="Gewicht (kg)"
+          type="number"
+          step="0.01"
+          min="0"
+        />
         <BaseInput v-model="form.inventarnummer" label="Inventarnummer" />
         <BaseInput v-model="form.kaufdatum" label="Kaufdatum" type="date" />
-        <BaseInput v-model.number="form.kaufpreis" label="Kaufpreis (CHF)" type="number" step="0.05" min="0" />
+        <BaseInput
+          v-model.number="form.kaufpreis"
+          label="Kaufpreis (CHF)"
+          type="number"
+          step="0.05"
+          min="0"
+        />
       </div>
     </details>
 
     <div class="flex flex-wrap justify-between gap-2">
       <BaseButton v-if="id" variant="danger" @click="archivierenKlick">Archivieren</BaseButton>
-      <BaseButton type="submit" class="ml-auto" :loading="speichert" :disabled="bildLaedt">Speichern</BaseButton>
+      <BaseButton type="submit" class="ml-auto" :loading="speichert" :disabled="bildLaedt"
+        >Speichern</BaseButton
+      >
     </div>
   </form>
 </template>

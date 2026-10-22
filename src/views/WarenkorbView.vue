@@ -21,7 +21,10 @@ const { frei, neuLaden } = useVerfuegbarkeit()
 const sammlungOffen = ref(false)
 const sendet = ref(false)
 
-const zuViel = (it) => cart.zeitraumGesetzt && frei.value.has(it.material_id) && it.anzahl > frei.value.get(it.material_id)
+const zuViel = (it) =>
+  cart.zeitraumGesetzt &&
+  frei.value.has(it.material_id) &&
+  it.anzahl > frei.value.get(it.material_id)
 
 const fehlt = computed(() => {
   if (!cart.items.length) return 'Der Warenkorb ist leer.'
@@ -65,7 +68,10 @@ async function bestellen() {
       <!-- Positionen -->
       <section class="rounded-lg bg-white shadow-sm lg:col-span-2 dark:bg-gray-700">
         <p v-if="!cart.items.length" class="p-6 text-center text-gray-500">
-          Noch leer. <RouterLink :to="{ name: 'material' }" class="text-blue-600 hover:underline">Material ansehen</RouterLink>
+          Noch leer.
+          <RouterLink :to="{ name: 'material' }" class="text-blue-600 hover:underline"
+            >Material ansehen</RouterLink
+          >
         </p>
         <ul v-else class="divide-y divide-gray-200 dark:divide-gray-600">
           <li
@@ -85,7 +91,11 @@ async function bestellen() {
               </p>
             </div>
             <div class="flex items-center">
-              <button type="button" class="rounded-l border border-gray-300 p-1.5 dark:border-gray-500" @click="cart.setzen(it.material_id, it.anzahl - 1)">
+              <button
+                type="button"
+                class="rounded-l border border-gray-300 p-1.5 dark:border-gray-500"
+                @click="cart.setzen(it.material_id, it.anzahl - 1)"
+              >
                 <MinusIcon class="size-4" /><span class="sr-only">Weniger</span>
               </button>
               <input
@@ -95,11 +105,19 @@ async function bestellen() {
                 class="w-14 border-y border-gray-300 py-1 text-center dark:border-gray-500 dark:bg-gray-600"
                 @change="cart.setzen(it.material_id, Number($event.target.value))"
               />
-              <button type="button" class="rounded-r border border-gray-300 p-1.5 dark:border-gray-500" @click="cart.setzen(it.material_id, it.anzahl + 1)">
+              <button
+                type="button"
+                class="rounded-r border border-gray-300 p-1.5 dark:border-gray-500"
+                @click="cart.setzen(it.material_id, it.anzahl + 1)"
+              >
                 <PlusIcon class="size-4" /><span class="sr-only">Mehr</span>
               </button>
             </div>
-            <button type="button" class="text-gray-400 hover:text-red-600" @click="cart.entfernen(it.material_id)">
+            <button
+              type="button"
+              class="text-gray-400 hover:text-red-600"
+              @click="cart.entfernen(it.material_id)"
+            >
               <TrashIcon class="size-5" /><span class="sr-only">Entfernen</span>
             </button>
           </li>
@@ -111,7 +129,9 @@ async function bestellen() {
         <ZeitraumWahl />
         <ZuordnungWahl />
         <div>
-          <label for="kommentar" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kommentar (optional)</label>
+          <label for="kommentar" class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >Kommentar (optional)</label
+          >
           <textarea
             id="kommentar"
             v-model="cart.kommentar"
@@ -120,7 +140,9 @@ async function bestellen() {
           />
         </div>
         <p v-if="fehlt" class="text-sm text-gray-500">{{ fehlt }}</p>
-        <BaseButton type="submit" class="w-full" :loading="sendet" :disabled="!!fehlt">Bestellen</BaseButton>
+        <BaseButton type="submit" class="w-full" :loading="sendet" :disabled="!!fehlt"
+          >Bestellen</BaseButton
+        >
       </section>
     </div>
 

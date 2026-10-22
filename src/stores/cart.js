@@ -38,5 +38,19 @@ export const useCartStore = defineStore('cart', () => {
     kommentar.value = ''
   }
 
-  return { items, von, bis, stufeId, anlassId, freitext, kommentar, anzahl, zeitraumGesetzt, hinzufuegen, setzen, entfernen, leeren }
+  return {
+    items,
+    von,
+    bis,
+    stufeId,
+    anlassId,
+    freitext,
+    kommentar,
+    anzahl,
+    zeitraumGesetzt,
+    hinzufuegen,
+    setzen,
+    entfernen,
+    leeren,
+  }
 })

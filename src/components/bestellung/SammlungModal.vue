@@ -31,7 +31,11 @@ function waehlen(sm) {
     <p v-if="!liste.length" class="text-sm text-gray-500">Keine Sammlungen vorhanden.</p>
     <ul class="divide-y divide-gray-200 dark:divide-gray-600">
       <li v-for="sm in liste" :key="sm.id">
-        <button type="button" class="w-full px-2 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-600" @click="waehlen(sm)">
+        <button
+          type="button"
+          class="w-full px-2 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-600"
+          @click="waehlen(sm)"
+        >
           <span class="font-medium">{{ sm.name }}</span>
           <span class="block text-sm text-gray-500 dark:text-gray-300">
             {{ sm.items.map((i) => `${i.anzahl}× ${i.material.name}`).join(', ') }}

@@ -20,7 +20,9 @@ const ortOptionen = computed(() => props.standorte.map((o) => ({ value: o.id, la
   <div class="flex flex-wrap items-end gap-2">
     <label class="relative min-w-48 flex-1">
       <span class="sr-only">Suche</span>
-      <MagnifyingGlassIcon class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400" />
+      <MagnifyingGlassIcon
+        class="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-gray-400"
+      />
       <input
         v-model="suche"
         type="search"
@@ -28,8 +30,18 @@ const ortOptionen = computed(() => props.standorte.map((o) => ({ value: o.id, la
         class="block w-full rounded-md border border-gray-300 py-2 pl-10 pr-3 shadow-sm focus:border-blue-500 focus:outline-none dark:border-gray-500 dark:bg-gray-600"
       />
     </label>
-    <BaseSelect v-model="kategorie" :optionen="katOptionen" platzhalter="Alle Kategorien" class="w-44" />
-    <BaseSelect v-model="standort" :optionen="ortOptionen" platzhalter="Alle Standorte" class="w-44" />
+    <BaseSelect
+      v-model="kategorie"
+      :optionen="katOptionen"
+      platzhalter="Alle Kategorien"
+      class="w-44"
+    />
+    <BaseSelect
+      v-model="standort"
+      :optionen="ortOptionen"
+      platzhalter="Alle Standorte"
+      class="w-44"
+    />
     <div class="flex overflow-hidden rounded-md border border-gray-300 dark:border-gray-500">
       <button
         type="button"

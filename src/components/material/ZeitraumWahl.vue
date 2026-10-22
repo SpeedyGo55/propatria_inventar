@@ -27,6 +27,8 @@ function loeschen() {
   <div class="flex flex-wrap items-end gap-2">
     <BaseInput v-model="von" type="date" label="Von" :min="heute" />
     <BaseInput v-model="bis" type="date" label="Bis" :min="von || heute" />
-    <BaseButton v-if="cart.von || cart.bis" variant="ghost" @click="loeschen">Zeitraum löschen</BaseButton>
+    <BaseButton v-if="cart.von || cart.bis" variant="ghost" @click="loeschen"
+      >Zeitraum löschen</BaseButton
+    >
   </div>
 </template>

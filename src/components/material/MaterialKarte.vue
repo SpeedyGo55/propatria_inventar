@@ -37,7 +37,9 @@ const s = useSessionStore()
         </RouterLink>
       </div>
 
-      <p v-if="material.standort" class="text-sm text-gray-500 dark:text-gray-300">{{ material.standort.name }}</p>
+      <p v-if="material.standort" class="text-sm text-gray-500 dark:text-gray-300">
+        {{ material.standort.name }}
+      </p>
 
       <div class="flex flex-wrap gap-1">
         <span

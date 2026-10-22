@@ -35,3 +35,4 @@ coverage
 supabase/.temp
 supabase/.branches
 backup/
+supabase/functions/.env

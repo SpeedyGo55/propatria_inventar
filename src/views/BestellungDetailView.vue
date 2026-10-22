@@ -14,18 +14,6 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseModal from '@/components/base/BaseModal.vue'
 import SchadenMeldenModal from '@/components/schaden/SchadenMeldenModal.vue'
 
-const schadenMaterial = ref(null)
-const schadenOffen = ref(false)
-const darfSchadenMelden = computed(
-  () =>
-    (istBesteller.value || istMatchef.value) &&
-    ['delivered', 'completed'].includes(b.value?.status),
-)
-function schaden(item) {
-  schadenMaterial.value = item.material
-  schadenOffen.value = true
-}
-
 const props = defineProps({ id: { type: String, required: true } })
 
 const s = useSessionStore()
@@ -59,7 +47,17 @@ const bearbeitbar = computed(() => ['pending', 'created'].includes(b.value?.stat
 const historie = computed(() =>
   [...(b.value?.historie ?? [])].sort((x, y) => x.created_at.localeCompare(y.created_at)),
 )
-
+const schadenMaterial = ref(null)
+const schadenOffen = ref(false)
+const darfSchadenMelden = computed(
+  () =>
+    (istBesteller.value || istMatchef.value) &&
+    ['delivered', 'completed'].includes(b.value?.status),
+)
+function schaden(item) {
+  schadenMaterial.value = item.material
+  schadenOffen.value = true
+}
 // Aktion ausführen → Fehler anzeigen → neu laden. Gibt true bei Erfolg zurück.
 async function ausfuehren(fn, erfolg) {
   arbeitet.value = true

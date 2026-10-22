@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "propatria-inventar",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    // Unbekannte Pfade (z.B. /matchef beim Reload) → index.html, Vue Router übernimmt
+    "not_found_handling": "single-page-application"
+  }
+}

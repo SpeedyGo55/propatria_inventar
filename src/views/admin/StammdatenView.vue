@@ -64,6 +64,6 @@ const tab = computed(() => TABS.find((t) => t.key === tabKey.value) ?? TABS[0])
     </nav>
 
     <!-- :key sorgt dafür, dass die Tabelle beim Tab-Wechsel neu lädt -->
-    <StammdatenTabelle :key="tab.key" :tabelle="tab.key" :felder="tab.felder" :losch-hinweis="tab.loeschHinweis" />
+    <StammdatenTabelle :key="tab.key" :tabelle="tab.key" :felder="tab.felder" :loesch-hinweis="tab.loeschHinweis" />
   </div>
 </template>

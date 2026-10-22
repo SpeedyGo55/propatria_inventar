@@ -14,3 +14,23 @@ export const UEBERGAENGE = {
   rejected:  ['pending'],
   cancelled: ['pending'],
 }
+// Beschriftung der Status-Knöpfe pro Übergang
+const AKTIONEN = {
+  'pending>created': { label: 'Bestätigen', variant: 'primary' },
+  'pending>rejected': { label: 'Ablehnen', variant: 'danger' },
+  'pending>cancelled': { label: 'Stornieren', variant: 'secondary' },
+  'created>delivered': { label: 'Ausgeben', variant: 'primary' },
+  'created>pending': { label: 'Bestätigung zurücknehmen', variant: 'secondary' },
+  'created>rejected': { label: 'Ablehnen', variant: 'danger' },
+  'created>cancelled': { label: 'Stornieren', variant: 'secondary' },
+  'delivered>completed': { label: 'Rücknahme abschliessen', variant: 'primary' },
+  'delivered>created': { label: 'Ausgabe rückgängig', variant: 'secondary' },
+  'completed>delivered': { label: 'Rücknahme rückgängig', variant: 'secondary' },
+  'rejected>pending': { label: 'Wieder öffnen', variant: 'secondary' },
+  'cancelled>pending': { label: 'Wieder öffnen', variant: 'secondary' },
+}
+export const aktionenFuer = (status) =>
+  (UEBERGAENGE[status] ?? []).map((nach) => ({ nach, ...AKTIONEN[`${status}>${nach}`] }))
+
+const HISTORIE = { erstellt: 'Bestellung erstellt', zeitraum: 'Zeitraum geändert', kommentar: 'Kommentar' }
+export const historieText = (typ) => HISTORIE[typ] ?? STATUS[typ]?.label ?? typ

@@ -1,1 +1,19 @@
 @import 'tailwindcss';
+
+@layer base {
+  /* Sicherheitsnetz: nichts darf die Seite seitlich breiter machen als den Bildschirm */
+  html,
+  body {
+    overflow-x: clip;
+  }
+
+  /* Hintergrund auch dort, wo die App-Fläche aufhört (kein weisser Streifen) */
+  body {
+    background-color: var(--color-gray-100);
+  }
+  @media (prefers-color-scheme: dark) {
+    body {
+      background-color: var(--color-gray-800);
+    }
+  }
+}

@@ -14,13 +14,13 @@ const routes = [
     path: '/',
     name: 'material',
     component: () => import('@/views/MaterialView.vue'),
-    meta: { rolle: 'guest' },
+    meta: { rolle: 'guest', offline: true },
   },
   {
     path: '/warenkorb',
     name: 'warenkorb',
     component: () => import('@/views/WarenkorbView.vue'),
-    meta: { rolle: 'member' },
+    meta: { rolle: 'member', offline: true },
   },
   {
     path: '/bestellungen',
@@ -35,7 +35,7 @@ const routes = [
     props: true,
     meta: { rolle: 'member' },
   },
-  { path: '/profil', name: 'profil', component: () => import('@/views/ProfilView.vue') },
+  { path: '/profil', name: 'profil', component: () => import('@/views/ProfilView.vue'), meta: { offline: true } },
 
   {
     path: '/matchef',

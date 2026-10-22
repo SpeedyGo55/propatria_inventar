@@ -27,6 +27,14 @@ export const useSessionStore = defineStore('session', () => {
       memberships.value = []
       return
     }
+
+    // Offline: sofort den letzten Stand nehmen statt auf den Timeout zu warten
+    if (!navigator.onLine) {
+      memberships.value = membershipsCache.value
+      if (!aktiv.value) abteilungId.value = memberships.value[0]?.abteilung.id ?? null
+      return
+    }
+
     const [p, m] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', user.value.id).single(),
       supabase

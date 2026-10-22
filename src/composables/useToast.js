@@ -10,6 +10,10 @@ export function useToast() {
     toasts,
     info: (t) => push(t),
     ok: (t) => push(t, 'ok'),
-    fehler: (t) => push(t, 'fehler'),
+    // Offline sind Fehler fast immer Netzwerkfehler → das Banner reicht
+    fehler: (t) => {
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return
+      push(t, 'fehler')
+    },
   }
 }

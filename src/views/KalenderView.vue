@@ -9,7 +9,9 @@ import { materialListe } from '@/api/material'
 import { STATUS } from '@/utils/status'
 import { datum } from '@/utils/format'
 import BaseSelect from '@/components/base/BaseSelect.vue'
+import { useOnline } from '@vueuse/core'
 
+const online = useOnline()
 const s = useSessionStore()
 const toast = useToast()
 
@@ -35,6 +37,7 @@ const tage = computed(() => {
 })
 
 async function laden() {
+  if (!online.value) return
   if (!s.abteilungId) return
   const von = tage.value[0]
   const bis = new Date(tage.value[41])
@@ -52,6 +55,7 @@ watch(
   },
   { immediate: true },
 )
+watch(online, (o) => o && laden())
 const materialOpt = computed(() => material.value.map((m) => ({ value: m.id, label: m.name })))
 
 // Positionen zu Bestellungen zusammenfassen
@@ -137,6 +141,10 @@ function zuHeute() {
     <div class="max-w-xs">
       <BaseSelect v-model="materialFilter" :optionen="materialOpt" platzhalter="Alles Material" />
     </div>
+
+    <p v-if="!online" class="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-900 dark:bg-yellow-900/30 dark:text-yellow-100">
+      Der Kalender braucht eine Internetverbindung. Offline siehst du nur die Materialliste.
+    </p>
 
     <!-- Monatsraster (ab Tablet) -->
     <div class="hidden overflow-hidden rounded-lg bg-white shadow-sm sm:block dark:bg-gray-700">

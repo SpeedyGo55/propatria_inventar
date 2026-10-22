@@ -10,6 +10,7 @@ export const useSessionStore = defineStore('session', () => {
   const profile = ref(null)
   const memberships = ref([])
   const abteilungId = useLocalStorage('abteilung', null)
+  const membershipsCache = useLocalStorage('memberships-cache', [])
 
   let markReady
   const ready = new Promise((r) => (markReady = r))
@@ -33,8 +34,13 @@ export const useSessionStore = defineStore('session', () => {
         .select('role, abteilung:abteilungen(id, name, slug, logo_url)')
         .eq('user_id', user.value.id),
     ])
-    profile.value = p.data
-    memberships.value = m.data ?? []
+    if (!p.error) profile.value = p.data
+    if (m.error) {
+      memberships.value = membershipsCache.value // offline → letzter bekannter Stand
+    } else {
+      memberships.value = m.data
+      membershipsCache.value = m.data
+    }
     if (!aktiv.value) abteilungId.value = memberships.value[0]?.abteilung.id ?? null
   }
 
@@ -57,6 +63,8 @@ export const useSessionStore = defineStore('session', () => {
     for (const key of Object.keys(localStorage)) {
       if (key.startsWith('sb-') && key.endsWith('-auth-token')) localStorage.removeItem(key)
     }
+    localStorage.removeItem('memberships-cache')
+    localStorage.removeItem('material-cache')
     session.value = null
     profile.value = null
     memberships.value = []

@@ -1,35 +1,20 @@
-# propatria_inventar
+# Pfadi Pro Patria – Materialverwaltung
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + Vite + Tailwind + Supabase.
 
-## Recommended IDE Setup
+## Entwicklung
+    npm install
+    npx supabase start          # lokale DB (Docker)
+    npx supabase db reset       # Schema + Testdaten (seed.sql)
+    npm run dev                 # http://localhost:5173
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+Test-Logins (lokal): admin@ / matchef@ / member@ / neu@test.ch – Passwort `test1234`
 
-## Customize configuration
+## Tests
+    npx supabase test db        # RLS- und Logik-Tests (pgTAP)
+    npm run lint
 
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+## Schema ändern
+    npx supabase migration new <name>
+    # SQL schreiben → db reset → test db → db push
+    npx supabase gen types typescript --local > src/types/database.ts

@@ -16,7 +16,12 @@ const items = computed(() =>
   [
     { name: 'material', label: 'Material', icon: Squares2X2Icon, rolle: 'guest' },
     { name: 'warenkorb', label: 'Warenkorb', icon: ShoppingCartIcon, rolle: 'member' },
-    { name: 'bestellungen', label: 'Bestellungen', icon: ClipboardDocumentListIcon, rolle: 'member' },
+    {
+      name: 'bestellungen',
+      label: 'Bestellungen',
+      icon: ClipboardDocumentListIcon,
+      rolle: 'member',
+    },
     { name: 'matchef', label: 'Matchef', icon: WrenchScrewdriverIcon, rolle: 'matchef' },
     { name: 'profil', label: 'Profil', icon: UserCircleIcon, rolle: null },
   ].filter((i) => !i.rolle || s.hasRole(i.rolle)),
@@ -24,7 +29,9 @@ const items = computed(() =>
 </script>
 
 <template>
-  <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-700">
+  <nav
+    class="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white dark:border-gray-600 dark:bg-gray-700"
+  >
     <ul class="flex justify-around">
       <li v-for="i in items" :key="i.name">
         <RouterLink

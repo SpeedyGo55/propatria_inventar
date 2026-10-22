@@ -49,8 +49,30 @@ export const useSessionStore = defineStore('session', () => {
   })
 
   async function logout() {
-    await supabase.auth.signOut()
+    const { error } = await supabase.auth.signOut({ scope: 'local' })
+    if (error) console.warn('Logout:', error.message)
+
+    // Auch wenn der Server die Session nicht mehr kennt (z.B. nach db reset):
+    // lokal alles wegräumen, damit man sicher ausgeloggt ist.
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('sb-') && key.endsWith('-auth-token')) localStorage.removeItem(key)
+    }
+    session.value = null
+    profile.value = null
+    memberships.value = []
   }
 
-  return { session, user, profile, memberships, abteilungId, abteilung, rolle, hasRole, ready, laden, logout }
+  return {
+    session,
+    user,
+    profile,
+    memberships,
+    abteilungId,
+    abteilung,
+    rolle,
+    hasRole,
+    ready,
+    laden,
+    logout,
+  }
 })

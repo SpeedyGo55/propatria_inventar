@@ -98,15 +98,18 @@ cross join public.sammlungen s where s.name = 'Kochset Stufe';
 --    Erst Bestellungen, dann Items in einem EIGENEN Statement,
 --    sonst sieht der Item-Trigger die Bestellung noch nicht.
 -- ---------------------------------------------------------------
-insert into public.bestellungen (abteilung_id, besteller_id, gruppe_id, von, bis, status, kommentar) values
+insert into public.bestellungen (abteilung_id, besteller_id, stufe_id, anlass_id, von, bis, status, kommentar) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '33333333-3333-3333-3333-333333333333',
    (select id from public.gruppen where name = 'Pfadis'),
+   (select id from public.gruppen where name = 'Herbstlager (HeLa)'),
    now() + interval '7 days', now() + interval '9 days', 'pending', 'seed-a'),
   ('aaaaaaaa-0000-0000-0000-000000000001', '44444444-4444-4444-4444-444444444444',
    (select id from public.gruppen where name = 'Wölfe'),
+   (select id from public.gruppen where name = 'Aktivität (Akti)'),
    now() + interval '7 days', now() + interval '9 days', 'created', 'seed-b'),
   ('aaaaaaaa-0000-0000-0000-000000000001', '44444444-4444-4444-4444-444444444444',
    (select id from public.gruppen where name = 'Rover'),
+   null,
    now() - interval '5 days', now() - interval '1 day', 'delivered', 'seed-c');   -- überfällig
 
 insert into public.bestellung_items (bestellung_id, material_id, anzahl)

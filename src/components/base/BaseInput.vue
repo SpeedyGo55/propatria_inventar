@@ -15,7 +15,11 @@ const id = useId()
 
 <template>
   <div>
-    <label v-if="label" :for="id" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+    <label
+      v-if="label"
+      :for="id"
+      class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+    >
       {{ label }}
     </label>
     <input

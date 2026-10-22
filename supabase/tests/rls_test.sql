@@ -2,13 +2,14 @@
 -- Voraussetzung: frischer Stand (npx supabase db reset)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(25);
 
 -- =========================================================
 -- MEMBER (33333333-…)
 -- =========================================================
 set local role authenticated;
 set local request.jwt.claim.sub = '33333333-3333-3333-3333-333333333333';
+
 
 select ok((select count(*) from public.material) > 0,
   'Member sieht Material');
@@ -32,20 +33,38 @@ select lives_ok(
   $$ select public.bestellung_erstellen(
        'aaaaaaaa-0000-0000-0000-000000000001', now() + interval '8 days', now() + interval '10 days',
        jsonb_build_array(jsonb_build_object('material_id', (select id from public.material where name = 'Spatz 6er'), 'anzahl', 2)),
+       p_stufe_id => (select id from public.gruppen where name = 'Pfadis'),
        p_kommentar => 'test-ok') $$,
   'Member bestellt die letzten 2 freien Spatzen');
 
 select throws_like(
   $$ select public.bestellung_erstellen(
        'aaaaaaaa-0000-0000-0000-000000000001', now() + interval '8 days', now() + interval '10 days',
-       jsonb_build_array(jsonb_build_object('material_id', (select id from public.material where name = 'Spatz 6er'), 'anzahl', 1))) $$,
+       jsonb_build_array(jsonb_build_object('material_id', (select id from public.material where name = 'Spatz 6er'), 'anzahl', 1)),
+       p_stufe_id => (select id from public.gruppen where name = 'Pfadis')) $$,
   '%Nicht genug verfügbar%',
   'Überbuchung wird abgelehnt');
+
+select throws_like(
+  $$ select public.bestellung_erstellen(
+       'aaaaaaaa-0000-0000-0000-000000000001', now() + interval '30 days', now() + interval '31 days',
+       jsonb_build_array(jsonb_build_object('material_id', (select id from public.material where name = 'Axt'), 'anzahl', 1))) $$,
+  '%Stufe oder Anlass%',
+  'Bestellung ohne Stufe/Anlass wird abgelehnt');
+
+select throws_like(
+  $$ select public.bestellung_erstellen(
+       'aaaaaaaa-0000-0000-0000-000000000001', now() + interval '30 days', now() + interval '31 days',
+       jsonb_build_array(jsonb_build_object('material_id', (select id from public.material where name = 'Axt'), 'anzahl', 1)),
+       p_stufe_id => (select id from public.gruppen where name = 'Herbstlager (HeLa)')) $$,
+  '%Ungültige Stufe%',
+  'Anlass kann nicht als Stufe gesetzt werden');
 
 select lives_ok(
   $$ select public.bestellung_erstellen(
        'aaaaaaaa-0000-0000-0000-000000000001', now() + interval '20 days', now() + interval '22 days',
-       jsonb_build_array(jsonb_build_object('material_id', (select id from public.material where name = 'Spatz 6er'), 'anzahl', 4))) $$,
+       jsonb_build_array(jsonb_build_object('material_id', (select id from public.material where name = 'Spatz 6er'), 'anzahl', 4)),
+       p_stufe_id => (select id from public.gruppen where name = 'Pfadis')) $$,
   'Anderer Zeitraum: alle 4 Spatzen verfügbar');
 
 -- Status direkt ändern geht für Member nicht (0 Zeilen, kein Fehler)
@@ -82,6 +101,10 @@ select throws_like(
 select lives_ok(
   $$ update public.material set beschreibung = 'geprüft' where name = 'Axt' $$,
   'Matchef bearbeitet Material');
+
+select throws_ok(
+  $$ select public.mitglied_hinzufuegen('aaaaaaaa-0000-0000-0000-000000000001', 'neu@test.ch', 'admin') $$,
+  '42501', null, 'Matchef kann keine Mitglieder hinzufügen');
 
 -- Matchef darf keine Rollen ändern (0 Zeilen, kein Fehler)
 update public.abteilung_members set role = 'admin' where user_id = '33333333-3333-3333-3333-333333333333';

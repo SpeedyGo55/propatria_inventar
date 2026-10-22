@@ -5,3 +5,10 @@ export const datumZeit = (x) => (x ? dt.format(new Date(x)) : '')
 // Datum aus <input type="date"> → Tagesanfang / Tagesende in lokaler Zeit
 export const tagStart = (s) => new Date(`${s}T00:00`).toISOString()
 export const tagEnde = (s) => new Date(`${s}T23:59`).toISOString()
+// ISO-String → 'YYYY-MM-DD' (lokale Zeit) für <input type="date">
+export const alsDatumInput = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}

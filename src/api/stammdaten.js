@@ -28,6 +28,8 @@ export const gruppen = (abteilungId, nurAktive = true) => {
   if (nurAktive) q = q.eq('aktiv', true)
   return q
 }
+export const stufen = (abteilungId) => gruppen(abteilungId).eq('typ', 'stufe')
+export const anlaesse = (abteilungId) => gruppen(abteilungId).in('typ', ['anlass', 'sonstiges'])
 
 // --- Sammlungen ---
 export const sammlungen = (abteilungId) =>
@@ -56,7 +58,9 @@ export async function sammlungItemsSetzen(sammlungId, items) {
   if (del.error || !items.length) return del
   return supabase
     .from('sammlung_items')
-    .insert(items.map(({ material_id, anzahl }) => ({ sammlung_id: sammlungId, material_id, anzahl })))
+    .insert(
+      items.map(({ material_id, anzahl }) => ({ sammlung_id: sammlungId, material_id, anzahl })),
+    )
 }
 
 export const sammlungLoeschen = (id) => supabase.from('sammlungen').delete().eq('id', id)

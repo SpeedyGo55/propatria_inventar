@@ -7,7 +7,16 @@ import { useToast } from '@/composables/useToast'
 import { profilNameSetzen } from '@/api/mitglieder'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import { RouterLink } from 'vue-router'
+import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 
+const ROLLEN_TEXT = {
+  pending: 'wartet',
+  guest: 'Gast',
+  member: 'Member',
+  matchef: 'Matchef',
+  admin: 'Admin',
+}
 const s = useSessionStore()
 const toast = useToast()
 const router = useRouter()
@@ -63,7 +72,7 @@ async function changeName() {
 
 async function abmelden() {
   await s.logout()
-  router.push({ name: 'login' })
+  router.replace({ name: 'login' })
 }
 </script>
 
@@ -77,6 +86,33 @@ async function abmelden() {
     <p class="text-sm text-gray-600 dark:text-gray-300">
       Eingeloggt als <strong>{{ s.profile?.display_name }}</strong> ({{ s.user?.email }})
     </p>
+
+    <section class="space-y-1">
+      <h2 class="text-lg font-semibold">Abteilung</h2>
+      <p v-for="m in s.memberships" :key="m.abteilung.id" class="text-sm">
+        {{ m.abteilung.name }} · <strong>{{ ROLLEN_TEXT[m.role] }}</strong>
+      </p>
+    </section>
+
+    <nav
+      v-if="s.hasRole('matchef')"
+      class="divide-y divide-gray-200 rounded-lg bg-white shadow-sm dark:divide-gray-600 dark:bg-gray-700"
+    >
+      <RouterLink :to="{ name: 'stammdaten' }" class="flex items-center justify-between px-4 py-3">
+        Verwaltung (Kategorien, Standorte, Stufen &amp; Anlässe)
+        <ChevronRightIcon class="size-5 text-gray-400" />
+      </RouterLink>
+      <RouterLink :to="{ name: 'sammlungen' }" class="flex items-center justify-between px-4 py-3">
+        Sammlungen <ChevronRightIcon class="size-5 text-gray-400" />
+      </RouterLink>
+      <RouterLink
+        v-if="s.hasRole('admin')"
+        :to="{ name: 'mitglieder' }"
+        class="flex items-center justify-between px-4 py-3"
+      >
+        Mitglieder <ChevronRightIcon class="size-5 text-gray-400" />
+      </RouterLink>
+    </nav>
 
     <form class="space-y-3" @submit.prevent="changeName">
       <h2 class="text-lg font-semibold">Name</h2>

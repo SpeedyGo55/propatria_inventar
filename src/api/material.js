@@ -56,3 +56,23 @@ export async function bildLoeschen(url) {
   const path = url.split(`/${BUCKET}/`)[1]
   if (path) await supabase.storage.from(BUCKET).remove([path])
 }
+export const unterMin = (abteilungId) =>
+  supabase
+    .from('material_unter_min')
+    .select('*')
+    .eq('abteilung_id', abteilungId)
+    .order('fehlend', { ascending: false })
+
+// Bestand nach dem Einkauf erhöhen
+export async function nachgekauft(materialId, menge) {
+  const { data, error } = await supabase
+    .from('material')
+    .select('anzahl')
+    .eq('id', materialId)
+    .single()
+  if (error) return { error }
+  return supabase
+    .from('material')
+    .update({ anzahl: data.anzahl + menge })
+    .eq('id', materialId)
+}

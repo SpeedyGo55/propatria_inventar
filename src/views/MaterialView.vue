@@ -1,7 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useLocalStorage } from '@vueuse/core'
+import { useLocalStorage, useOnline } from '@vueuse/core'
 import { PlusIcon } from '@heroicons/vue/24/outline'
 import { useSessionStore } from '@/stores/session'
 import { useCartStore } from '@/stores/cart'
@@ -14,6 +14,17 @@ import ZeitraumWahl from '@/components/material/ZeitraumWahl.vue'
 import MaterialFilter from '@/components/material/MaterialFilter.vue'
 import MaterialKarte from '@/components/material/MaterialKarte.vue'
 import MaterialTabelle from '@/components/material/MaterialTabelle.vue'
+import SchadenMeldenModal from '@/components/schaden/SchadenMeldenModal.vue'
+import { datumZeit } from '@/utils/format'
+
+const online = useOnline()
+const cache = useLocalStorage('material-cache', { stand: null, abteilungId: null, material: [] })
+const schadenMaterial = ref(null)
+const schadenOffen = ref(false)
+function schaden(m) {
+  schadenMaterial.value = m
+  schadenOffen.value = true
+}
 
 const s = useSessionStore()
 const cart = useCartStore()
@@ -26,14 +37,21 @@ const standorte = ref([])
 
 async function laden() {
   if (!s.abteilungId) return
-  const [, k, o] = await Promise.all([
+  // Offline → letzter gespeicherter Stand
+  if (!online.value) {
+    if (cache.value.abteilungId === s.abteilungId) material.value = cache.value.material
+    return
+  }
+  const [daten, k, o] = await Promise.all([
     ladeMaterial().catch(() => null),
     ladeKategorien(s.abteilungId),
     ladeStandorte(s.abteilungId),
   ])
+  if (daten) cache.value = { stand: new Date().toISOString(), abteilungId: s.abteilungId, material: daten }
   kategorien.value = k.data ?? []
   standorte.value = o.data ?? []
 }
+watch(online, (o) => o && laden()) // wieder online → frisch laden
 watch(() => s.abteilungId, laden, { immediate: true })
 
 const suche = ref('')
@@ -70,6 +88,8 @@ function hinzufuegen(m) {
       </RouterLink>
     </div>
 
+    <p v-if="!online && cache.stand" class="text-sm text-gray-500">Stand: {{ datumZeit(cache.stand) }}</p>
+
     <section v-if="s.hasRole('member')" class="rounded-lg bg-white p-3 shadow-sm dark:bg-gray-700">
       <p class="mb-2 text-sm text-gray-600 dark:text-gray-300">
         Zeitraum wählen, um die Verfügbarkeit zu sehen:
@@ -102,6 +122,7 @@ function hinzufuegen(m) {
         :material="m"
         :frei="frei.get(m.id)"
         @hinzufuegen="hinzufuegen"
+        @schaden="schaden"
       />
     </div>
 
@@ -110,5 +131,6 @@ function hinzufuegen(m) {
     <p v-if="gefiltert.length" class="text-center text-sm text-gray-500">
       {{ gefiltert.length }} Einträge
     </p>
+    <SchadenMeldenModal v-model="schadenOffen" :material="schadenMaterial" @gemeldet="laden" />
   </div>
 </template>

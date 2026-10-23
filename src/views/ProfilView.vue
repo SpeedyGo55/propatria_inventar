@@ -1,10 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/utils/supabase'
 import { useSessionStore } from '@/stores/session'
 import { useToast } from '@/composables/useToast'
-import { profilNameSetzen } from '@/api/mitglieder'
+import { profilNameSetzen, icalToken, icalTokenErneuern } from '@/api/mitglieder'
 import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { RouterLink } from 'vue-router'
@@ -70,6 +70,30 @@ async function changeName() {
   }
 }
 
+
+const token = ref(null)
+onMounted(async () => {
+  const { data } = await icalToken()
+  token.value = data?.token ?? null
+})
+const aboUrl = computed(() =>
+  token.value ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ical?token=${token.value}` : '',
+)
+const webcalUrl = computed(() => aboUrl.value.replace(/^https?:/, 'webcal:'))
+
+async function aboKopieren() {
+  await navigator.clipboard.writeText(aboUrl.value)
+  toast.ok('Link kopiert')
+}
+
+async function aboErneuern() {
+  if (!confirm('Neuen Link erzeugen? Der alte funktioniert danach nicht mehr.')) return
+  const { data, error } = await icalTokenErneuern(s.user.id)
+  if (error) return toast.fehler(error.message)
+  token.value = data.token
+  toast.ok('Neuer Link erstellt – im Kalender neu abonnieren')
+}
+
 async function abmelden() {
   await s.logout()
   router.replace({ name: 'login' })
@@ -95,22 +119,41 @@ async function abmelden() {
     </section>
 
     <nav
-      v-if="s.hasRole('matchef')"
       class="divide-y divide-gray-200 rounded-lg bg-white shadow-sm dark:divide-gray-600 dark:bg-gray-700"
     >
-      <RouterLink :to="{ name: 'stammdaten' }" class="flex items-center justify-between px-4 py-3">
-        Verwaltung (Kategorien, Standorte, Stufen &amp; Anlässe)
-        <ChevronRightIcon class="size-5 text-gray-400" />
+      <RouterLink :to="{ name: 'kalender' }" class="flex items-center justify-between px-4 py-3">
+        Kalender <ChevronRightIcon class="size-5 text-gray-400" />
       </RouterLink>
-      <RouterLink :to="{ name: 'sammlungen' }" class="flex items-center justify-between px-4 py-3">
-        Sammlungen <ChevronRightIcon class="size-5 text-gray-400" />
-      </RouterLink>
+      <template v-if="s.hasRole('matchef')">
+        <RouterLink :to="{ name: 'schaeden' }" class="flex items-center justify-between px-4 py-3">
+          Schäden <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'stammdaten' }"
+          class="flex items-center justify-between px-4 py-3"
+        >
+          Verwaltung (Kategorien, Standorte, Stufen &amp; Anlässe)
+          <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+        <RouterLink
+          :to="{ name: 'sammlungen' }"
+          class="flex items-center justify-between px-4 py-3"
+        >
+          Sammlungen <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+        <RouterLink :to="{ name: 'statistik' }" class="flex items-center justify-between px-4 py-3">
+          Statistik <ChevronRightIcon class="size-5 text-gray-400" />
+        </RouterLink>
+      </template>
       <RouterLink
         v-if="s.hasRole('admin')"
         :to="{ name: 'mitglieder' }"
         class="flex items-center justify-between px-4 py-3"
       >
         Mitglieder <ChevronRightIcon class="size-5 text-gray-400" />
+      </RouterLink>
+      <RouterLink :to="{ name: 'datenschutz' }" class="flex items-center justify-between px-4 py-3">
+        Datenschutz <ChevronRightIcon class="size-5 text-gray-400" />
       </RouterLink>
     </nav>
 
@@ -138,6 +181,27 @@ async function abmelden() {
       />
       <BaseButton type="submit" :loading="laedt === 'passwort'">Passwort ändern</BaseButton>
     </form>
+
+    <section v-if="s.hasRole('member') && aboUrl" class="space-y-2">
+      <h2 class="text-lg font-semibold">Kalender abonnieren</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-300">
+        Deine Bestellungen (als Matchef: alle) erscheinen automatisch in deinem Kalender.
+        Google Kalender: „Weitere Kalender → Per URL“. Apple/iPhone: Link unten antippen.
+      </p>
+      <div class="flex gap-2">
+        <input
+          :value="aboUrl"
+          readonly
+          class="min-w-0 flex-1 rounded-md border border-gray-300 px-3 py-2 text-xs dark:border-gray-500 dark:bg-gray-600"
+          @focus="$event.target.select()"
+        />
+        <BaseButton variant="secondary" @click="aboKopieren">Kopieren</BaseButton>
+      </div>
+      <div class="flex flex-wrap gap-3 text-sm">
+        <a :href="webcalUrl" class="text-blue-600 hover:underline">In Apple Kalender öffnen</a>
+        <button type="button" class="text-gray-500 hover:underline" @click="aboErneuern">Link erneuern</button>
+      </div>
+    </section>
 
     <BaseButton variant="danger" @click="abmelden">Logout</BaseButton>
   </div>

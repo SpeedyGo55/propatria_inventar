@@ -11,7 +11,9 @@ import ZeitraumWahl from '@/components/material/ZeitraumWahl.vue'
 import ZuordnungWahl from '@/components/bestellung/ZuordnungWahl.vue'
 import SammlungModal from '@/components/bestellung/SammlungModal.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
+import { useOnline } from '@vueuse/core'
 
+const online = useOnline()
 const s = useSessionStore()
 const cart = useCartStore()
 const toast = useToast()
@@ -27,6 +29,7 @@ const zuViel = (it) =>
   it.anzahl > frei.value.get(it.material_id)
 
 const fehlt = computed(() => {
+  if (!online.value) return 'Du bist offline.'
   if (!cart.items.length) return 'Der Warenkorb ist leer.'
   if (!cart.zeitraumGesetzt) return 'Bitte Zeitraum wählen.'
   if (!cart.stufeId && !cart.anlassId) return 'Bitte Stufe oder Anlass wählen.'

@@ -8,19 +8,25 @@ const routes = [
     component: () => import('@/views/LoginView.vue'),
     meta: { public: true },
   },
+  {
+    path: '/datenschutz',
+    name: 'datenschutz',
+    component: () => import('@/views/DatenschutzView.vue'),
+    meta: { public: true, offline: true },
+  },
   { path: '/warten', name: 'warten', component: () => import('@/views/WartenView.vue') },
 
   {
     path: '/',
     name: 'material',
     component: () => import('@/views/MaterialView.vue'),
-    meta: { rolle: 'guest' },
+    meta: { rolle: 'guest', offline: true },
   },
   {
     path: '/warenkorb',
     name: 'warenkorb',
     component: () => import('@/views/WarenkorbView.vue'),
-    meta: { rolle: 'member' },
+    meta: { rolle: 'member', offline: true },
   },
   {
     path: '/bestellungen',
@@ -35,7 +41,7 @@ const routes = [
     props: true,
     meta: { rolle: 'member' },
   },
-  { path: '/profil', name: 'profil', component: () => import('@/views/ProfilView.vue') },
+  { path: '/profil', name: 'profil', component: () => import('@/views/ProfilView.vue'), meta: { offline: true } },
 
   {
     path: '/matchef',
@@ -73,6 +79,24 @@ const routes = [
     name: 'mitglieder',
     component: () => import('@/views/admin/MitgliederView.vue'),
     meta: { rolle: 'admin' },
+  },
+  {
+    path: '/kalender',
+    name: 'kalender',
+    component: () => import('@/views/KalenderView.vue'),
+    meta: { rolle: 'guest' },
+  },
+  {
+    path: '/admin/schaeden',
+    name: 'schaeden',
+    component: () => import('@/views/admin/SchaedenView.vue'),
+    meta: { rolle: 'matchef' },
+  },
+  {
+    path: '/admin/statistik',
+    name: 'statistik',
+    component: () => import('@/views/admin/StatistikView.vue'),
+    meta: { rolle: 'matchef' },
   },
 
   { path: '/:pathMatch(.*)*', redirect: '/' },

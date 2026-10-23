@@ -1,6 +1,11 @@
 <script setup>
 import { RouterLink } from 'vue-router'
-import { CubeIcon, PencilSquareIcon, PlusIcon } from '@heroicons/vue/24/outline'
+import {
+  CubeIcon,
+  PencilSquareIcon,
+  PlusIcon,
+  ExclamationTriangleIcon,
+} from '@heroicons/vue/24/outline'
 import { useSessionStore } from '@/stores/session'
 import VerfuegbarBadge from './VerfuegbarBadge.vue'
 
@@ -8,7 +13,7 @@ defineProps({
   material: { type: Object, required: true },
   frei: { type: Number, default: undefined },
 })
-defineEmits(['hinzufuegen'])
+defineEmits(['hinzufuegen', 'schaden'])
 const s = useSessionStore()
 </script>
 
@@ -41,6 +46,12 @@ const s = useSessionStore()
         {{ material.standort.name }}
       </p>
 
+      <p v-if="material.damaged || material.lost" class="text-xs text-red-600">
+        <template v-if="material.damaged">{{ material.damaged }} beschädigt</template>
+        <template v-if="material.damaged && material.lost"> · </template>
+        <template v-if="material.lost">{{ material.lost }} verloren</template>
+      </p>
+
       <div class="flex flex-wrap gap-1">
         <span
           v-for="k in material.kategorien"
@@ -53,15 +64,23 @@ const s = useSessionStore()
 
       <div class="mt-auto flex items-center justify-between pt-2">
         <VerfuegbarBadge :material="material" :frei="frei" />
-        <button
-          v-if="s.hasRole('member')"
-          type="button"
-          :disabled="frei !== undefined && frei <= 0"
-          class="rounded bg-blue-500 p-1.5 text-white hover:bg-blue-600 disabled:opacity-40 dark:bg-blue-700"
-          @click="$emit('hinzufuegen', material)"
-        >
-          <PlusIcon class="size-5" /><span class="sr-only">In den Warenkorb</span>
-        </button>
+        <div v-if="s.hasRole('member')" class="flex gap-1">
+          <button
+            type="button"
+            class="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+            @click="$emit('schaden', material)"
+          >
+            <ExclamationTriangleIcon class="size-5" /><span class="sr-only">Schaden melden</span>
+          </button>
+          <button
+            type="button"
+            :disabled="frei !== undefined && frei <= 0"
+            class="rounded bg-blue-500 p-1.5 text-white hover:bg-blue-600 disabled:opacity-40 dark:bg-blue-700"
+            @click="$emit('hinzufuegen', material)"
+          >
+            <PlusIcon class="size-5" /><span class="sr-only">In den Warenkorb</span>
+          </button>
+        </div>
       </div>
     </div>
   </article>

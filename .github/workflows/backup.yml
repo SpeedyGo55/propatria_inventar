@@ -1,0 +1,32 @@
+name: Backup
+
+on:
+  schedule:
+    - cron: '17 2 * * *' # täglich 02:17 UTC
+  workflow_dispatch:
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Dump
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          supabase db dump --db-url "$DB_URL" -f schema.sql
+          supabase db dump --db-url "$DB_URL" --data-only -s public,auth -f data.sql
+      - name: Verschlüsseln (Repo ist öffentlich!)
+        env:
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          tar czf backup.tgz schema.sql data.sql
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" -c backup.tgz
+          rm schema.sql data.sql backup.tgz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: backup.tgz.gpg
+          retention-days: 30

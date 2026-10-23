@@ -8,6 +8,12 @@ const routes = [
     component: () => import('@/views/LoginView.vue'),
     meta: { public: true },
   },
+  {
+    path: '/datenschutz',
+    name: 'datenschutz',
+    component: () => import('@/views/DatenschutzView.vue'),
+    meta: { public: true, offline: true },
+  },
   { path: '/warten', name: 'warten', component: () => import('@/views/WartenView.vue') },
 
   {

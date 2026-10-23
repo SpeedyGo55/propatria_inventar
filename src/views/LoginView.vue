@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { supabase } from '@/utils/supabase'
 import { useSessionStore } from '@/stores/session'
 import { useToast } from '@/composables/useToast'
@@ -79,5 +79,8 @@ async function passwortVergessen() {
         </button>
       </div>
     </form>
+    <p class="mt-4 text-center text-sm">
+      <RouterLink :to="{ name: 'datenschutz' }" class="text-gray-500 hover:underline">Datenschutz</RouterLink>
+    </p>
   </div>
 </template>

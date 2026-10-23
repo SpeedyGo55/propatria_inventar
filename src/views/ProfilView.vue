@@ -152,6 +152,9 @@ async function abmelden() {
       >
         Mitglieder <ChevronRightIcon class="size-5 text-gray-400" />
       </RouterLink>
+      <RouterLink :to="{ name: 'datenschutz' }" class="flex items-center justify-between px-4 py-3">
+        Datenschutz <ChevronRightIcon class="size-5 text-gray-400" />
+      </RouterLink>
     </nav>
 
     <form class="space-y-3" @submit.prevent="changeName">

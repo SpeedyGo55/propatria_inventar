@@ -2,7 +2,7 @@
 -- Voraussetzung: frischer Stand (npx supabase db reset)
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(30);
+select plan(32);
 
 -- =========================================================
 -- MEMBER (33333333-…)
@@ -181,6 +181,23 @@ select ok(exists (select 1 from public.bestellungen where kommentar = 'seed-c'),
   'Aufräumen: aktuelle Bestellungen bleiben (auch ohne Besteller)');
 select is((select count(*) from auth.sessions where id = '99999999-9999-9999-9999-999999999999')::int, 0,
   'Aufräumen: Login-Sitzung nach 90 Tagen gelöscht');
+
+-- =========================================================
+-- MFA: Matchef mit eingerichtetem zweitem Faktor
+-- =========================================================
+reset role;
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at)
+values (gen_random_uuid(), '22222222-2222-2222-2222-222222222222', 'Test', 'totp', 'verified', now(), now());
+
+set local role authenticated;
+set local request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","aal":"aal1"}';
+select is((select count(*) from public.material)::int, 0,
+  'MFA: nur Passwort (aal1) → kein Zugriff');
+
+set local request.jwt.claims = '{"sub":"22222222-2222-2222-2222-222222222222","aal":"aal2"}';
+select ok((select count(*) from public.material) > 0,
+  'MFA: mit zweitem Faktor (aal2) → Zugriff');
 
 select * from finish();
 rollback;

@@ -35,7 +35,7 @@ const KONTAKT = 'luca.buholzer@eccom.ch'
     <section class="space-y-2">
       <h2 class="text-lg font-semibold">Welche Daten wir bearbeiten und wozu</h2>
       <ul class="list-disc space-y-1 pl-5">
-        <li><strong>Konto:</strong> Name bzw. Pfadiname, E-Mail-Adresse, bei Anmeldung mit MiData die MiData-Personen-ID. Zweck: Anmeldung und Zuordnung von Bestellungen.</li>
+        <li><strong>Konto:</strong> Name bzw. Pfadiname, E-Mail-Adresse, bei Anmeldung mit MiData die MiData-Personen-ID. Zweck: Anmeldung und Zuordnung von Bestellungen. Falls du die Zwei-Faktor-Anmeldung einschaltest, zusätzlich ein geheimer Schlüssel für deine Authenticator-App.</li>
         <li><strong>Rolle in der Abteilung</strong> (z.B. Member, Matchef, Admin). Zweck: Berechtigungen in der App.</li>
         <li><strong>Bestellungen:</strong> Zeitraum, Stufe/Anlass, Material, Kommentare und Verlauf. Zweck: Ausleihe planen und Material zurückverfolgen.</li>
         <li><strong>Schadensmeldungen:</strong> Beschreibung und optional ein Foto. Zweck: Reparatur und Ersatz von Material. Bitte keine Personen fotografieren.</li>

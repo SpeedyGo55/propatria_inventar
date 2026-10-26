@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useSessionStore } from '@/stores/session'
+import { codeNoetig } from '@/api/mfa'
 
 const routes = [
   {
@@ -109,6 +110,8 @@ router.beforeEach(async (to) => {
   await s.ready
   if (to.meta.public) return
   if (!s.user) return { name: 'login', query: { redirect: to.fullPath } }
+  // MFA eingerichtet, aber Code noch nicht eingegeben -> zurück zum Code-Schritt
+  if (await codeNoetig()) return { name: 'login', query: { mfa: '1', redirect: to.fullPath } }
   if (to.meta.rolle && !s.hasRole(to.meta.rolle)) {
     return s.rolle === null || s.rolle === 'pending' ? { name: 'warten' } : { name: 'material' }
   }

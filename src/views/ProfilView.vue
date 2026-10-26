@@ -9,6 +9,7 @@ import BaseInput from '@/components/base/BaseInput.vue'
 import BaseButton from '@/components/base/BaseButton.vue'
 import { RouterLink } from 'vue-router'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
+import MfaEinstellungen from '@/components/profil/MfaEinstellungen.vue'
 
 const ROLLEN_TEXT = {
   pending: 'wartet',
@@ -181,6 +182,8 @@ async function abmelden() {
       />
       <BaseButton type="submit" :loading="laedt === 'passwort'">Passwort ändern</BaseButton>
     </form>
+
+    <MfaEinstellungen />
 
     <section v-if="s.hasRole('member') && aboUrl" class="space-y-2">
       <h2 class="text-lg font-semibold">Kalender abonnieren</h2>

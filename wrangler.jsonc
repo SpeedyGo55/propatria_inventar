@@ -6,5 +6,7 @@
     "directory": "./dist",
     // Unbekannte Pfade (z.B. /matchef beim Reload) → index.html, Vue Router übernimmt
     "not_found_handling": "single-page-application"
-  }
+  },
+  // Keine Request-Logs (enthalten IP-Adressen) – für eine statische Seite nicht nötig
+  "observability": { "enabled": false }
 }

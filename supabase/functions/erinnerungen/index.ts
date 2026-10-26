@@ -9,6 +9,7 @@ Deno.serve(async (req) => {
   const { job } = await req.json()
   if (job === 'rueckgabe') await rueckgabe()
   if (job === 'mindestbestand') await mindestbestand()
+  if (job === 'aufraeumen') await aufraeumen()
   return new Response('ok')
 })
 
@@ -56,4 +57,16 @@ async function mindestbestand() {
        ${link('/matchef', 'Zur Nachkauf-Liste')}`,
     )
   }
+}
+// Wöchentlich: alte Daten löschen (siehe Migration "cleanup"), danach die Schadens-Fotos
+async function aufraeumen() {
+  const { data, error } = await admin.rpc('cleanup')
+  if (error) return console.error('cleanup', error)
+
+  const pfade = (data ?? []).map((d: any) => (typeof d === 'string' ? d : d?.aufraeumen)).filter(Boolean)
+  for (let i = 0; i < pfade.length; i += 100) {
+    const { error: e } = await admin.storage.from('schaden-fotos').remove(pfade.slice(i, i + 100))
+    if (e) console.error('Fotos löschen', e)
+  }
+  console.log(`Cleanup fertig: ${pfade.length} Fotos gelöscht`)
 }

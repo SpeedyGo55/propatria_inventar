@@ -92,8 +92,9 @@ const KONTAKT = 'luca.buholzer@eccom.ch'
     <section class="space-y-2">
       <h2 class="text-lg font-semibold">Wie lange wir Daten aufbewahren</h2>
       <ul class="list-disc space-y-1 pl-5">
-        <li>Dein Konto, solange du in der Abteilung aktiv bist. Nach dem Austritt löschen wir es auf Anfrage oder spätestens nach 1 Jahr.</li>
-        <li>Bestellungen und Schadensmeldungen 3 Jahre, für die Nachverfolgung von Material.</li>
+        <li>Dein Konto, solange du in der Abteilung aktiv bist. Nach dem Austritt löschen wir es auf Anfrage oder automatisch nach 1 Jahr.</li>
+        <li>Nicht freigegebene Beitrittsanfragen nach 1 Jahr.</li>
+        <li>Abgeschlossene Bestellungen, Schadensmeldungen (inkl. Fotos) und das Änderungsprotokoll nach 3 Jahren.</li>
         <li>Sicherungskopien höchstens 30 Tage.</li>
       </ul>
       <p>Wird dein Konto gelöscht, bleiben vergangene Bestellungen ohne deinen Namen erhalten.</p>

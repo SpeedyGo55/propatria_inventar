@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router'
 import BaseButton from '@/components/base/BaseButton.vue'
 
 const router = useRouter()
-const STAND = '23.10.2026'
+const STAND = '26.10.2026'
 const KONTAKT = 'luca.buholzer@eccom.ch'
 </script>
 
@@ -87,6 +87,20 @@ const KONTAKT = 'luca.buholzer@eccom.ch'
         und für die Offline-Nutzung eine Kopie der Materialliste. Es werden keine Tracking-Cookies verwendet.
         Beim Abmelden werden die Anmeldung und die Kopien gelöscht.
       </p>
+    </section>
+    <section class="space-y-2">
+      <h2 class="text-lg font-semibold">Technische Daten (IP-Adresse)</h2>
+      <p>
+        Beim Aufruf der App wird deine IP-Adresse technisch übermittelt. Sie wird nicht in den Daten der
+        Materialverwaltung gespeichert und nicht ausgewertet. Sie fällt aber an folgenden Stellen an:
+      </p>
+      <ul class="list-disc space-y-1 pl-5">
+        <li><strong>Anmeldung:</strong> Pro Login-Sitzung werden IP-Adresse und Browser-Typ gespeichert, um die
+          Sitzung abzusichern. Beim Abmelden wird die Sitzung gelöscht, sonst automatisch nach 90 Tagen ohne Nutzung.</li>
+        <li><strong>Server-Protokolle</strong> von Supabase und Cloudflare: Diese Anbieter protokollieren Anfragen
+          inklusive IP-Adresse zur Sicherheit und Fehlersuche und löschen diese Protokolle nach wenigen Tagen.</li>
+      </ul>
+      <p>E-Mails der App enthalten keine Lese- oder Klickverfolgung.</p>
     </section>
 
     <section class="space-y-2">

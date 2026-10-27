@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 import { supabase } from '@/utils/supabase'
+import { codeNoetig } from '@/api/mfa'
 
 export const ROLLEN = ['pending', 'guest', 'member', 'matchef', 'admin']
 
@@ -27,6 +28,10 @@ export const useSessionStore = defineStore('session', () => {
       memberships.value = []
       return
     }
+
+    // MFA eingerichtet, Code noch nicht eingegeben: die DB liefert dann nichts
+    // (Policy "mfa") → nicht laden, sonst werden Cache und gewählte Abteilung überschrieben
+    if (await codeNoetig()) return
 
     // Offline: sofort den letzten Stand nehmen statt auf den Timeout zu warten
     if (!navigator.onLine) {

@@ -43,7 +43,7 @@ export const archivieren = (id) =>
 const BUCKET = 'material-bilder'
 
 export async function bildHochladen(abteilungId, file) {
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const ext = { 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' }[file.type] ?? 'jpg'
   const path = `${abteilungId}/${crypto.randomUUID()}.${ext}`
   const { error } = await supabase.storage
     .from(BUCKET)

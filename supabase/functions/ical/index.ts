@@ -3,7 +3,7 @@
 import { admin } from '../_shared/admin.ts'
 
 const zeit = (iso: string) => new Date(iso).toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-const esc = (s: string) => String(s ?? '').replace(/[\\,;]/g, (m) => '\\' + m).replace(/\n/g, '\\n')
+const esc = (s: string) => String(s ?? '').replace(/[\\,;]/g, (m) => '\\' + m).replace(/\r\n|\r|\n/g, '\\n')
 
 Deno.serve(async (req) => {
   const token = new URL(req.url).searchParams.get('token')
@@ -38,6 +38,6 @@ Deno.serve(async (req) => {
   ].join('\r\n')
 
   return new Response(ics, {
-    headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'max-age=900' },
+    headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'Cache-Control': 'private, max-age=900' },
   })
 })

@@ -6,9 +6,18 @@ export const admin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 )
 
-// Aufrufe aus der Datenbank (Trigger/Cron) schicken dieses Secret mit
-export const geheimOk = (req: Request) =>
-  req.headers.get('Authorization') === `Bearer ${Deno.env.get('CRON_SECRET')}`
+// Aufrufe aus der Datenbank (Trigger/Cron) schicken dieses Secret mit.
+// Ohne gesetztes Secret wird alles abgelehnt (sonst passt "Bearer undefined").
+export function geheimOk(req: Request) {
+  const secret = Deno.env.get('CRON_SECRET')
+  if (!secret) return false
+  const a = new TextEncoder().encode(req.headers.get('Authorization') ?? '')
+  const b = new TextEncoder().encode(`Bearer ${secret}`)
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i] // Vergleich mit konstanter Laufzeit
+  return diff === 0
+}
 
 // E-Mails aller Matchefs/Admins einer Abteilung, die Mails wollen
 export async function matchefMails(abteilungId: string): Promise<string[]> {

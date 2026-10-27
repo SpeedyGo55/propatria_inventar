@@ -5,27 +5,39 @@ on:
     - cron: '17 2 * * *' # täglich 02:17 UTC
   workflow_dispatch:
 
+permissions: {} # braucht keinen GITHUB_TOKEN
+
 jobs:
   dump:
     runs-on: ubuntu-latest
     steps:
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
-          version: latest
+          version: 2.121.0
       - name: Dump
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           supabase db dump --db-url "$DB_URL" -f schema.sql
-          supabase db dump --db-url "$DB_URL" --data-only -s public,auth -f data.sql
+          # Ohne Sitzungen, Tokens, 2FA-Geheimnisse und Auth-Protokoll (IP-Adressen).
+          # Nach einem Restore müssen Nutzer sich neu anmelden und 2FA neu einrichten.
+          supabase db dump --db-url "$DB_URL" --data-only -s public,auth \
+            -x auth.sessions -x auth.refresh_tokens -x auth.mfa_amr_claims \
+            -x auth.mfa_challenges -x auth.mfa_factors -x auth.one_time_tokens \
+            -x auth.flow_state -x auth.audit_log_entries \
+            -f data.sql
       - name: Verschlüsseln (Repo ist öffentlich!)
         env:
-          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+          # Nur der ÖFFENTLICHE Schlüssel liegt auf GitHub (Repo-Variable).
+          # Der private Schlüssel zum Entschlüsseln bleibt offline beim Admin.
+          PUBKEY: ${{ vars.BACKUP_PUBKEY }}
         run: |
+          test -n "$PUBKEY" || { echo "BACKUP_PUBKEY fehlt"; exit 1; }
           tar czf backup.tgz schema.sql data.sql
-          gpg --batch --yes --pinentry-mode loopback --passphrase "$PASS" -c backup.tgz
+          printf '%s\n' "$PUBKEY" > backup-pub.asc
+          gpg --batch --yes --recipient-file backup-pub.asc -o backup.tgz.gpg -e backup.tgz
           rm schema.sql data.sql backup.tgz
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: backup-${{ github.run_id }}
           path: backup.tgz.gpg

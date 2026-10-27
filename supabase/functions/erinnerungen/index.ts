@@ -60,7 +60,7 @@ async function mindestbestand() {
 }
 // Wöchentlich: alte Daten löschen (siehe Migration "cleanup"), danach die Schadens-Fotos
 async function aufraeumen() {
-  const { data, error } = await admin.rpc('cleanup')
+  const { data, error } = await admin.rpc('aufraeumen')
   if (error) return console.error('cleanup', error)
 
   const pfade = (data ?? []).map((d: any) => (typeof d === 'string' ? d : d?.aufraeumen)).filter(Boolean)

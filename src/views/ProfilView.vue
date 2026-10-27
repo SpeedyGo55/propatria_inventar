@@ -23,6 +23,8 @@ const toast = useToast()
 const router = useRouter()
 
 const password = ref('')
+const nonce = ref('') // Bestätigungscode per Mail (secure_password_change)
+const nonceNoetig = ref(false)
 const email = ref('')
 const name = ref(s.profile?.display_name ?? '')
 const laedt = ref('') // 'passwort' | 'email' | 'name' | ''
@@ -30,10 +32,22 @@ const laedt = ref('') // 'passwort' | 'email' | 'name' | ''
 async function changePassword() {
   laedt.value = 'passwort'
   try {
-    const { error } = await supabase.auth.updateUser({ password: password.value })
+    const { error } = await supabase.auth.updateUser({
+      password: password.value,
+      nonce: nonce.value || undefined,
+    })
+    if (error?.code === 'reauthentication_needed') {
+      const r = await supabase.auth.reauthenticate() // schickt den Code per Mail
+      if (r.error) throw r.error
+      nonceNoetig.value = true
+      toast.info('Bitte gib den Bestätigungscode aus der E-Mail ein.')
+      return
+    }
     if (error) throw error
     toast.ok('Passwort geändert.')
     password.value = ''
+    nonce.value = ''
+    nonceNoetig.value = false
   } catch (error) {
     toast.fehler('Passwort ändern fehlgeschlagen: ' + error.message)
   } finally {
@@ -177,7 +191,15 @@ async function abmelden() {
         label="Neues Passwort"
         type="password"
         autocomplete="new-password"
-        minlength="6"
+        minlength="10"
+        required
+      />
+      <BaseInput
+        v-if="nonceNoetig"
+        v-model="nonce"
+        label="Bestätigungscode aus der E-Mail"
+        inputmode="numeric"
+        autocomplete="one-time-code"
         required
       />
       <BaseButton type="submit" :loading="laedt === 'passwort'">Passwort ändern</BaseButton>
